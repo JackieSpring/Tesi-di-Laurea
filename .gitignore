@@ -1,2 +1,4 @@
-!*.pdf
-!*.tex
+*.aux
+*.log
+*.toc
+*.out
