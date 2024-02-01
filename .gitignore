@@ -2,3 +2,5 @@
 *.log
 *.toc
 *.out
+*.zip
+.DS_Store
