@@ -22,6 +22,8 @@
 
 
 %% DEFINIZIONI
+
+
 \newcommand{\MComment}[3]{\textcolor{#3}{ \textbf{#1} \textit{#2}}}
 \newcommand{\Nota}[1]{\MComment{Nota:}{#1}{olive}}
 \newcommand{\Assert}[1]{\MComment{Assert:}{#1}{red}}
@@ -29,7 +31,12 @@
 
 \newcommand{\code}[1]{\texttt{#1}}
 
+
 \newcommand{\vuln}{\textit{"vuln"}}
+\newcommand{\AddonManager}{\code{AddonManager} }
+\newcommand{\ExtensionProcessScript}{\code{ExtensionProcessScript} }
+\newcommand{\WebExtensionPolicy}{\code{WebExtensionPolicy} }
+\newcommand{\ContentSecurityPolicy}{\code{ContentSecurityPolicy} }
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \lstdefinestyle{mystyle}{ 
@@ -55,8 +62,8 @@
 
 \maketitle
 \tableofcontents
-
 \newpage
+
 
 
 \mainmatter
@@ -89,8 +96,13 @@
     e sono andato a studiare se e in che modo il browser sia in grado di difendersi
     da tale scenario.
 
+    \section{Breve anatomia di un'estensione}
+        \Nota{Approfondire}
+        Una estensione è un insieme di script, fogli di stile e documenti html che modificano
+        l'aspetto e il comportamento del browser, ad oggi.
 
 \newpage
+
 \chapter{Metodo}
     \section{Threat model}
         \begin{itemize}
@@ -184,6 +196,7 @@
 
 
 \newpage{}
+
 \chapter{L'infrastruttura di sicurezza Firefox}
     Ogni sito internet moderno ha in qualche modo il bisogno di interagire con la rete,
     con uno storage locale, con il file system e con dispositivi audio e video, tutte
@@ -378,7 +391,35 @@
             Semmai il codice privilegiato avesse bisogno di conoscere lo stato corrente dell'oggetto la
             visione Xray può venire attenuata programmaticamente accedendo alla prorpietà \code{.wrappedJSObject},
             ma a questo punto non si avrebbero piu garanzie di sicurezza su di esso, nè sui "figli".
+\newpage
 
+\chapter{Estensioni nel dettaglio}
+    \Nota{Approfondire il ruolo di \WebExtensionPolicy nelle chiamate IPC}\\
+    \Nota{Approfondire il ruolo di \ContentSecurityPolicy nelle chiamate agli API }\\
+    Quanto segue descrive la logica e le strutture che implementano il sistema delle WebExtensions a runtime,
+    dal termine dell'installazione all'iniezione del codice nel processo. Sono operazioni svolte in due ambienti,
+    nativo e javascript, ed interessano più componenti di Gecko, il mio studio si è concentrato sulla
+    rappresentazione in ambiente javascript delle estensioni attive in un processo tralasciando i dettagli
+    di archiviazione dei dati o di allocazione dei compartimenti.
+    \Assert{Continua, spiega che JS è malleabile e che puoi fare prototypepollution e che il codice è troppo grande per C++}
+
+    \section{ Loading }
+        La vita di una estensione è legata a due: \AddonManager ed \ExtensionProcessScript,
+        la prima è una classe singleton collocata nel Parent Process e responsabile della archiviazione
+        degli Addon e delle estensioni ( prima di supportare lo standard WebExtension, Firefox veniva espanso
+        usando gli Addon, \AddonManager è stata modificata successivamente per adattarsi al nuovo standard; quella degli
+        Addon è una storia affascinante che si intreccia con l'evoluzione del sistema di sicurezza del browser ).
+        Quando una estensione viene installata è \AddonManager a prendersi carico del collezionamento dei nuovi
+        script nel database e di avviarli per la prima volta mentre il browser è in esecuzione; ma se \AddonManager
+        è situata nella memoria del Parent Process come può iniettare uno script su altri processi isolati?
+        \ExtensionProcessScript è un'altra classe singleton attiva su ogni Content Process, è incaricata di
+        ottenere i dati e il codice delle estensioni e farne il setup preparandoli per il successivo utilizzo;
+        inoltre è indirettamente responsabile dell'avvio all'interno del processo. Per rappresentare l'estensione
+        \ExtensionProcessScript istanzia un oggetto \WebExtensionPolicy che ha la duplice funzione di astrarre
+        l'estensione stessa e le informazioni di sicurezza associate, 
+         
+
+\newpage
 
 \chapter{Attaccando l'estensione \vuln}
 
