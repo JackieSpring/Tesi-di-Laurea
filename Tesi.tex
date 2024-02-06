@@ -30,13 +30,18 @@
 \newcommand{\Todo}[1]{\MComment{TODO:}{#1}{brown}}
 
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\method}[1]{\code{.#1()}}
+\newcommand{\property}[1]{\code{.#1}}
 
 
 \newcommand{\vuln}{\textit{"vuln"}}
+\newcommand{\idl}{\code{idl} }
+\newcommand{\ipdl}{\code{ipdl} }
 \newcommand{\AddonManager}{\code{AddonManager} }
 \newcommand{\ExtensionProcessScript}{\code{ExtensionProcessScript} }
 \newcommand{\WebExtensionPolicy}{\code{WebExtensionPolicy} }
 \newcommand{\ContentSecurityPolicy}{\code{ContentSecurityPolicy} }
+
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \lstdefinestyle{mystyle}{ 
@@ -403,6 +408,26 @@
     di archiviazione dei dati o di allocazione dei compartimenti.
     \Assert{Continua, spiega che JS è malleabile e che puoi fare prototypepollution e che il codice è troppo grande per C++}
 
+    \section{Breve introduzione a XPCOM}
+        XPCOM Framework è un ambiente di sviluppo multi piattaforma che astrae elementi del sistema operativo,
+        come la gestione della memoria, passing di messaggi e memoria condivisa, e fornisce interfacce di 
+        comunicazione tra linguaggi programmazione; è il collante fondamentale tra i processi e le componenti di
+        Gecko. Tra le feature di XPCOM il sottosistema XPConnect offre un linguaggio per definire
+        interfacce di programmazione chiamato \idl ( Interface Definition Language ) e un linguaggio per definire protocolli
+        di comunicazione inter-processo ed RPC chiamato \ipdl (Inte-process comunication Protocol Definition Language);
+        il file di definizione, sia esso \idl o \ipdl, viene compilato in rappresentazioni equivalenti nei linguaggi
+        di destinazione mentre la logica è implementata dal programmatore usando uno dei linguaggi specificati,
+        al momento XPConnect supporta C++, Rust, Python, Javascript e pochi altri, tutti impiegati nello sviluppo
+        di Gecko.\\
+        Voglio aprire una parentesi di approfondimento su \ipdl per fare chiarezza sul concetto di \textit{Attore}, 
+        menzionato nelle sezioni successive. A differenza delle interfacce un protocollo ha bisogno di due entità,
+        dette Attori, che utilizzino il protocollo per un fine di comunicazione, \ipdl si riferisce ad essi come 
+        Parent e Child. Il Parent viene collocato sul processo che rimarrà attivo più a lungo, idealmente il genitore, 
+        mentre il Child è l'entità corrispondente attiva su un altro processo, idelamente figlio del primo.
+        Durante la compilazione, XPConnect genera sia le strutture di rappresentazione dei protocolli che le
+        interfacce di programmazione per gli attori, implementate allo stesso modo delle interfacce \idl.
+
+
     \section{ Loading }
         La vita di una estensione è legata a due classi: \AddonManager ed \ExtensionProcessScript,
         la prima è una classe singleton collocata nel Parent Process e responsabile della archiviazione
@@ -416,7 +441,10 @@
         ottenere i dati e il codice delle estensioni e farne il setup preparandoli per il successivo utilizzo;
         inoltre è indirettamente responsabile dell'avvio all'interno del processo. Per rappresentare l'estensione
         \ExtensionProcessScript istanzia un oggetto \WebExtensionPolicy che ha la duplice funzione di astrarre
-        l'estensione stessa e le informazioni di sicurezza associate, 
+        l'estensione stessa e le informazioni di sicurezza associate tra cui l'entità di sicurezza,
+        la Content Security Policy, l'Origin e altre proprietà interne; tutti gli oggetti menzionati sono
+        descritti da interfacce \idl ed implementati in codice nativo, eccetto \code{mozIExtensionProcessScript.idl}
+        scritto direttamente in Javascript. 
          
 
 \newpage
