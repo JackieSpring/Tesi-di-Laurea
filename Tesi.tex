@@ -1,13 +1,15 @@
 
-\documentclass[]{./sapthesis/sapthesis}
+\documentclass[]{sapthesis}
 
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{todonotes}
+\usepackage[backend=biber]{biblatex}
 
 \graphicspath{{img/}}
+\addbibresource{Tesi.bib}
 
 
 \title{Firefox WebExtensions security infrastructure}
@@ -28,7 +30,6 @@
 \newcommand{\MComment}[3]{\textcolor{#3}{ \textbf{#1} \textit{#2}}}
 \newcommand{\Nota}[1]{\MComment{Nota:}{#1}{olive}}
 \newcommand{\Assert}[1]{\MComment{Assert:}{#1}{red}}
-\newcommand{\Todo}[1]{\MComment{TODO:}{#1}{brown}}
 
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\method}[1]{\code{.#1()}}
@@ -77,21 +78,28 @@
     \Nota{Perché i browser?}\\
     I Web Browser sono programmi complessi volti a visualizzare contenuti di vario genere
     provenienti dalle fonti piu disparate, dai file locali alle risorse accessibili nell'
-    internet, dalle immagini ai linguaggi di scripting.\todo{Qui forse dovresti citare le tecnologie di base dietro ad un browser: HTML, CSS, Javascript, etc.} In un mondo sempre piu connesso, i
+    internet, dalle immagini ai linguaggi di scripting.\todo{Qui forse dovresti citare le 
+    tecnologie di base dietro ad un browser: HTML, CSS, Javascript, etc.} In un mondo sempre piu connesso, i
     browser sono diventati de facto applicazioni necessarie nella vita di tutti i giorni e
     utilizzate da una vastissima comunità di utenti; la loro diffusione unita alla capacità
-    di eseguire codice javascript\todo{direi una mezza frase su cosa e' Javascript} direttamente sulla macchina dell'utente rende i browser
-    dei bersagli di interesse per il red-team\todo{Direi non solo red team ma anche in generali attaccanti}, aprendo alla possibilità di compromettere un
+    di eseguire codice javascript\todo{direi una mezza frase su cosa e' Javascript} 
+    direttamente sulla macchina dell'utente rende i browser
+    dei bersagli di interesse per il red-team\todo{Direi non solo red team ma anche in generali attaccanti}, 
+    aprendo alla possibilità di compromettere un
     grande numero di dispositivi.\\
 
     \Nota{Perché Firefox?}\\
     Firefox è un Web Browser che in passato ha avuto un'ampia comunità di utenti, noto per
-    le politiche a tutela privacy e la storica concorrenza con Internet Explorer.\todo{E Chrome? Non siamo negli anni 2000!}\todo{Immagino che qui devi ancora espandere per dire che lo hai considerato... e che poi hai scelto di considerare le sue estensioni.}
+    le politiche a tutela privacy e la storica concorrenza con Internet Explorer.\todo{E 
+    Chrome? Non siamo negli anni 2000!}\todo{Immagino che qui devi ancora espandere per 
+    dire che lo hai considerato... e che poi hai scelto di considerare le sue estensioni.}
 
 
     \Nota{Perché le estensioni?}\\
     Perché è codice scritto da terze parti a cui il browser da accesso ai contenuti web e
-    ad API privilegiato normalmente non accessibili dal DOM\todo{Mi raccomando cerca di accennare, anche se brevemente, ad eventuali concetti (anche se per te sono scontanti ma l'obiettivo di una tesi è far capire a tutti quello che hai studiato.)}, queste caratteristiche mi hanno
+    ad API privilegiato normalmente non accessibili dal DOM\todo{Mi raccomando cerca di accennare, 
+    anche se brevemente, ad eventuali concetti (anche se per te sono scontanti ma l'obiettivo 
+    di una tesi è far capire a tutti quello che hai studiato.)}, queste caratteristiche mi hanno
     indotto ad astrarre le estensioni come una sorta di ponte tra la pagina e il sistema,
     certo le estensioni non sono le uniche componenti del browser a svolgere questo ruolo
     (basti pensare all'interprete html), ma a differenza delle altre esse sono programmabili
@@ -450,8 +458,9 @@
 
 \newpage
 
-\chapter{Attaccando l'estensione \vuln}
+\cite{security_principal}
 
+\printbibliography
 
 \end{document}
 %% END ARTICOLO
