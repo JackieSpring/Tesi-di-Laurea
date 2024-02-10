@@ -1,6 +1,4 @@
-
-\documentclass[]{sapthesis}
-
+\documentclass{sapthesis}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{hyperref}
@@ -31,12 +29,24 @@
 \newcommand{\Nota}[1]{\MComment{Nota:}{#1}{olive}}
 \newcommand{\Assert}[1]{\MComment{Assert:}{#1}{red}}
 
+\newcommand{\bold}[1]{\textbf{#1}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\method}[1]{\code{.#1()}}
 \newcommand{\property}[1]{\code{.#1}}
+\newcommand{\attr}[1]{\code{.#1}}
+\newcommand{\refSection}[1]{Sezione~\ref{#1}}
+\newcommand{\refChapter}[1]{Capitolo~\ref{#1}}
+\newcommand{\Sezione}[1]{Sezione~\ref{#1}}
+\newcommand{\Capitolo}[1]{Capitolo~\ref{#1}}
 
 
+    % Utility
 \newcommand{\vuln}{\textit{"vuln"}}
+\newcommand{\www}{World Wide Web }
+\newcommand{\JS}{Javascript }
+    % Estensioni
+\newcommand{\manifest}{\code{manifest.json} }
+    % Browser
 \newcommand{\idl}{\code{idl} }
 \newcommand{\ipdl}{\code{ipdl} }
 \newcommand{\AddonManager}{\code{AddonManager} }
@@ -67,11 +77,12 @@
 %% ARTICOLO
 \begin{document}
 
+%% FRONTE
 \maketitle
 \tableofcontents
 \newpage
 
-
+%% CONTENUTO
 
 \mainmatter
 \chapter{Introduzione}
@@ -110,14 +121,229 @@
     e sono andato a studiare se e in che modo il browser sia in grado di difendersi
     da tale scenario.
 
-    \section{Breve anatomia di un'estensione}
-        \Nota{Approfondire}
-        Una estensione è un insieme di script, fogli di stile e documenti html che modificano
-        l'aspetto e il comportamento del browser, ad oggi.
 
-\newpage
+\chapter{Concetti fondamentali}
+\todo{Aggiungi riferimenti alle nuove sezioni \ref{dom} e \ref{webextension-api}}
+    Il capitolo fa un escursus su definizioni ed elementi utili per la comprensione dei capitoli che seguiranno,
+    nella \Sezione{I-linguaggi-fondamentali-del-www} si introducono i tre linguaggi fondamentali del web, HTML5,
+    CSS e Javascript al quale dedico la sezione \Sezione{javascript}. CSS verrà soltanto menzionato poiché non ha
+    avuto rilievo nella mia ricerca. Seguono due sezioni di presentazione alle estensioni browser, \Sezione{breve_storia_delle_estensioni}
+    \todo{e degli attacchi alle estensioni} browser  è un rapido riassunto sulla storia delle estensioni 
+    mentre \Sezione{anatomia_di_una_web_extension} spiega la struttura di una WebExtension.
 
-\chapter{Metodo}
+
+    \section{I linguaggi fondamentali del \www}
+    \label{I-linguaggi-fondamentali-del-www}
+        Un Web Browser è un'applicazione capace di richiedere e visualizzare risorse ottenute dalla rete
+        all'interno di una finestra.
+        Ad oggi un browser deve necessariamente essere in grado di interpretare questi tre tipi di risorsa 
+        per rendere il \www fruibile all'utente: documenti HTML5, fogli di stile CSS e script Javascript;
+        tutti e tre sono living standards, cioè standard che modificano e aggiornano di anno in anno le
+        proprie specifiche.
+        HTML5 è un linguaggio di markup che descrive la struttura di una pagina web. Gli elementi della 
+        pagina sono rappresentati da tag HTML che talvolta modificano i metadati, la visualizzazione e 
+        il comportamento del documento; per esempio il contenuto del tag \code{<script>} può essere interpretato 
+        come codice Javascript ed eseguito al volo dal browser, ma lo stesso tag \code{<script>} può anche importare
+        uno script da un URL o file sorgente.
+        Il frammento di codice \ref{code:esempio-html} è un esempio di utilizzo del linguaggio HTML5, in queste
+        righe viene creato un documento che mostra a schermo la scritta "Archive:" ed include tre altre risorse:
+        il tag \code{<link>} include e applica alla pagina il foglio di stile \code{page.css} mentre i due tag
+        \code{<script>} caricano ed eseguono due script Javascript.
+        In Firefox accanto ad HTML5 è presente un altro linguaggio di markup 
+        \todo{due parole in piu su XUL}chiamato XUL usato per la UI del browser stesso.
+
+        \begin{lstlisting}[label={code:esempio-html},caption={Un semplice documento html},captionpos=b,language=HTML]
+            <!doctype html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <link rel="stylesheet" href="page.css" />
+                    <script src="../shared/archive.js"></script>
+                    <script defer src="sbMain.js"></script>
+                </head>
+                <body>
+                    <p>Archive:</p><br/>
+                    <section id="output"></section>
+                </body>
+            </html>
+        \end{lstlisting}
+
+    
+    \section{Javascript}
+    \label{javascript}
+        \JS è il linguaggio principe della programmazione web lato frontend. Apparso per la
+        prima volta nel 1995 in grembo a Netscape, la sua diffusione ha segnato l'inizio di un \www
+        orientato alle applicazioni; ad oggi è usato in numerosi contesti diversi oltre alle pagine web,
+        come server in Nodejs o reti neurali in Tensorflow, parti del browser stesso sono programmate
+        con \JS. 
+        È un linguaggio ad oggetti debolmente tipizzato che supporta la programmazione ad eventi, 
+        funzionale, imperativa e la programmazione ad oggetti basata su prototipi \cite{javascript-introduction}.
+        Rispetto ad altri linguaggi fortemente orientati alla programmazione oggettuale come Java, in \JS
+        gli oggetti si comportano come dizionari, il loro insieme di proprietà può venire espanso, ridotto e 
+        modificato a runtime. Tra le proprietà di un oggetto alcune sono rilevanti ai fini del linguaggio:
+        \begin{itemize}
+            \item \bold{\method{valueOf}} Una funzione che ritorna il "valore" di un oggetto, viene invocata
+                    silenziosamente dall'interprete quando l'oggetto è sottoposto ad operazioni logico/matematiche;
+
+            \item \bold{\method{toString}} Una funzione che ritorna la rappresentazione dell'oggetto
+                    sottoforma di stringa.
+
+            \item \bold{\attr{\_\_proto\_\_}} È un oggetto che contiene i metodi e gli attributi ereditati, 
+                    definisce un \attr{\_\_proto\_\_} a sua volta contenente metodi e attributi della super-super classe 
+                    e coì via ricorsivamente. Quando si referenzia la proprietà di un oggetto dapprima la si cerca
+                    nell'oggetto stesso e se non viene trovata allora si esplorano ricorsivamente gli oggetti che
+                    formano la catena di \attr{\_\_proto\_\_} che termina con il \attr{\_\_proto\_\_} della classe
+                    base \code{Object}. È importante sottolineare che il sistema della catena di prototipi non è
+                    legato al tipo di oggetto che \attr{\_\_proto\_\_} referenzia, ma dalla sola presenza della chiave 
+                    \textit{\_\_proto\_\_} nell'oggetto esplorato e poiché si tratta di una proprietà come le altre
+                    \todo{prototype pollution?} è molto facile ridefinirlo.
+
+            \item \bold{\attr{prototype}} Usando la terminologia della programmazione ad oggetti, il \attr{prototype}
+                    di una classe contiene i metodi e gli attributi che verranno ereditati da ogni istanza della classe.
+                    In realtà in \JS le classi non esistono ma al loro posto ci sono i costruttori, funzioni che creano,
+                    inizializzano e ritornano un oggetto che diremo "istanza" del costruttore. Il valore dell'attributo \attr{\_\_proto\_\_}
+                    dell'istanza, ovvero l'oggetto prototipale, è un riferimento al \attr{prototype} del costruttore.
+            
+            \item \bold{\method{constructor}} È il riferimento alla funzione costruttrice dell'oggetto, questa proprietà
+                    si trova nel prototipo di un oggetto e viene solitamente usata per verificare l'appartenenza ad una
+                    "classe" di oggetti.
+        \end{itemize}
+        Il listato \ref{code:esempio-javascript-prototype} è un esempio variegato dei concetti introdotti.
+        Questo script dichiara un costruttore \code{Letter()} che assegna alle proprie istanze l'attributo \attr{number},
+        inoltre tutte le istanze di \code{Letter} ereditano il metodo \method{getNumber}, assegnato al prototipo del costruttore.
+        Infine si assegnano alle variabili \code{a},\code{b} e \code{z} tre diverse istanze di \code{Letter}.
+        La figura \ref{fig:javascript-prototype} illustra gli oggetti discussi e i vari riferimenti ai prototipi, \code{Function.prototype}
+        è il prototipo per tutti gli oggetti funzione mentre \code{Object.prototype} è il prototipo base di tutti gli oggetti.
+
+        \begin{lstlisting} [
+            label={code:esempio-javascript-prototype},
+            caption={Frammento di script, viene definito il costruttore \code{Letter} e lo si utilizza per creare tre oggetti },
+            captionpos=b
+        ]
+        function Letter(number) {
+            this.number = number;
+        }
+        
+        Letter.prototype.getNumber = function() {
+            return this.number;
+        };
+        
+        let a = new Letter(1);
+        let b = new Letter(2);
+        let z = new Letter(26);
+        \end{lstlisting}
+        
+        \begin{figure}[ht]
+            \centering                                                  
+            \includegraphics[width=0.5\textwidth]{javascript-constructor.png}
+            \caption{}
+            \label{fig:javascript-prototype}  
+        \end{figure}
+
+    \section{DOM}
+    \label{dom}
+        Il DOM è la rappresentazione di un documento HTML sottoforma di oggetti \JS \cite{dom-introduction}. 
+        Attraverso l'interfaccia offerta dal DOM è possibile modificare programmaticamente gli elementi presenti
+        nel documento; tra gli oggetti dichiarati nel DOM \code{document} rappresenta il documento vero e proprio
+        mentre \code{window} rappresenta la finestra di visualizzaione che contiene il documento.
+        \code{window} ricopre un ruolo molto importante nella programmazione web, esso è l'oggetto globale 
+        di tutti gli script eseguiti sulla pagina, ovvero un oggetto che ospita le variabili tra le
+        sue proprietà, oltre agli oggetti built-in.
+
+    \section{Breve storia delle estensioni}
+    \label{breve_storia_delle_estensioni}
+    \todo{attacchi agli applet}
+        Le estensioni browser non sono una novità. Già a partire dal 1995 Internet Explorer
+        supportava lo sviluppo di plugin \cite{extension-history} affinché visualizzassero contenuti
+        dinamici in un World Wide Web fatto di documenti statici, ma è a partire dal 1999 che
+        il browser diventa programmabile quando Internet Explorer 4 iniziò a supportare la modifica
+        dell'interfaccia utente. Il 2005 vede la nascita di Firefox e l'arrivo degli UserScript,
+        piccoli script per la modifica delle pagine web installabili nel browser ( precursori dei
+        WebExtension Content Script approfonditi nelle prosime sezioni ).
+        Lo sviluppo di estensioni cross-browser fu per molto tempo una sfida, non c'era uno standard
+        comune e ogni browser esponeva questa o quella funzionalità in piu rispetto agli altri; quando
+        uscii, Google Chrome non era da meno, ma negli anni la sua ampia diffusione impose lo standard
+        de-facto sulla scena; cercando di rimanere al passo con i tempi, Firefox si modificò per
+        supportare le estensioni di Google Chrome introducendo il WebExtension framework nel 2017.
+        Nonostante le differenze, ad oggi i browser stanno convergendo verso lo stesso formato di estensioni,
+        non solo Firefox ma anche Opera e Safari si sono adattati allo standard e sviluppare addon
+        cross-browser è diventato possibile.
+
+    \section{Anatomia di una Web Extension }
+    \label{anatomia_di_una_web_extension}
+        Una estensione è un insieme di script, fogli di stile e documenti html raccolti in una cartella o
+        archivio compresso ottenibile dallo store del browser o dai file locali. L'installazione di una
+        estensione può essere:
+        \begin{itemize}
+            \item \bold{built-in}, pre-installata nel browser per migliorare la User Experience
+                    o integrare funzionalità utili all'applicazione, l'estensione WebCompat è un esempio;
+                    si tratta di una estensione built-in Firefox usata per introdurre fix di compatibilità
+                    dopo il rilascio di una nuova versione del browser.
+
+            \item \bold{temporanea}, rimane operativa fintanto che il browser è in esecuzione, ma dovrà essere
+                    reinstallata ad ogni avviamento dell'applicazione.
+
+            \item \bold{persistente}, persiste al riavvio dell'applicazione e viene riattivata ad ogni
+                    esecuzione del browser.
+        \end{itemize}
+        
+        In ogni estensione che faccia uso del WebExtension framework deve essere presente il file \manifest contenente 
+        un oggetto \code{JSON}. Le proprietà dell'oggetto \manifest dichiarano i metadati dell'addon (come nome, 
+        versione e descrizione) e le risorse che verranno eventualmente utilizzate.
+        Il \manifest può contenere riferimenti a file di altro tipo che modificheranno il comportamento e l'aspetto
+        dell'applicazione e si suddividono in:
+        \begin{itemize}
+            \item \bold{background} Sono file che rispondo a eventi del browser, vengono chiamati di background 
+                    perché sono eseguiti in modo silenzioso e operano con le componenti interne dell'applicazione.
+                    Questi script non possono accedere direttamente alle pagine web.
+
+            \item \bold{sidebar, popup e option page} Sono delle interfacce utente introdotte dall'estensione che
+                    vengono visualizzate sullo schermo in modo più o meno permanente. Le \textit{sidebar} appaiono sul lato
+                    della finestra e rimangono visibili fino alla chiusura manuale da parte dell'utente, i \textit{popup} sono
+                    piccole interfacce grafiche disegnate alla pressione di un bottone sulla toolbar o sulla addressbar.
+                    La \textit{option-page} è mostrata quando l'utente accede alla pagina di modifica delle preferenze
+                    dell'estensione.
+
+            \item \bold{content script} Sono script usati per accedere e manipolare le finestre delle pagine web. Si
+                    potrebbe dire che sono la controparte UI dei \textit{background} script ma a differenza di questi
+                    ultimi non possono interagire con le componenti interne del browser. I \textit{content script} 
+                    vengono eseguiti solo sulle pagine che rispettano i criteri di origine specificati nel \manifest .
+                    A differenza delle pagine web i \textit{content script} possono effettuare richieste cross-domain e
+                    usare un piccolo sottoinsieme del WebExtension API.
+
+            \item \bold{Web accessible resources} Sono risorse di qualsiasi tipo rese accessibili agli altri script
+                    dell'estensione.
+
+        \end{itemize}
+
+        La figura \ref{fig:manifest-content} illustra quali file possono essere referenziati per i vari elementi descritti sopra.
+
+        \begin{figure}[ht]
+            \centering                                                  
+            \includegraphics[width=0.5\textwidth]{webextension-manifest-content}
+            \caption{Tipi di file referrenziabili dal \manifest }
+            \label{fig:manifest-content}                             
+        \end{figure}
+
+    \section{Il WebExtension API}
+    \label{webextension-api}
+        Ogni script \JS può fare uso di funzioni e oggetti messi a disposizione dall'ambiente in cui sta venendo
+        eseguito, poiché ogni script ha diverse necessità, l'accesso a queste risorse può venire consentito o negato
+        a seconda di quanto il sistema consideri rischioso esporre l'API ad un uso scorretto. Uno script di background
+        deve necessariamente poter agire sugli eventi riguardanti il browser nel suo insieme, ma non si può dire lo
+        stesso di uno script eseguito in una pagina web, interessato soltanto gli eventi in atto sul suo documento;
+        non a caso l'ambiente di esecuzione di background permette di modificare il comportamento del
+        browser ma non permette di navigare verso altri URL e specularmente l'ambiente delle pagine web può
+        richiedere un sottoinsieme di URI ma non ha alcun accesso agli API del browser.\\
+        Il WebExtension framework include nei suoi ambienti l'oggetto \code{browser} ( e li suo alias \code{chrome} ),
+        esso raccoglie un insieme di api utili alle le estensioni e normalmente non accessibili dalle pagine web;
+        quali siano questi API dipende dal tipo di script eseguito e dalla voce \code{"permissions"} del \manifest.
+        Tra gli api troviamo: \attr{runtime} \cite{browser-runtime} fornisce informazioni riguardo l'ambiente di 
+        esecuzione e offre funzioni di messaging, \todo{continua}
+    
+
+
+\chapter{Scenario e ambiente sperimentale}
     \section{Threat model}
         \begin{itemize}
             \item \textbf{Attaccante} Un membro del red-team interessato a compromettere
@@ -185,13 +411,14 @@
         \subsection{La vulnerabilità}
             La vulnerabilità risiede nella logica della sidebar, nella funzione \code{updateArchiveView}
 
-            \begin{lstlisting}
+            \begin{lstlisting}[caption={Frammento di codice vulnerabile nella sidebar di \vuln}]
                 keyField.innerHTML = data.key + ": ";
                 valField.innerHTML = data.value;
         
                 container.appendChild( keyField );
                 container.appendChild(valField);
             \end{lstlisting}
+            \label{code:vuln_archive_view}
 
             quando gli elementi \code{keyField} e \code{valField} vengono aggiunti all'albero di nodi
             del DOM, il campo \code{.innerHTML} viene valutato come valido codice HTML5 e interpretato,
@@ -209,8 +436,6 @@
             Alla ricezione di un messaggio lo script in background deserializza l'archivio
 
 
-\newpage{}
-
 \chapter{L'infrastruttura di sicurezza Firefox}
     Ogni sito internet moderno ha in qualche modo il bisogno di interagire con la rete,
     con uno storage locale, con il file system e con dispositivi audio e video, tutte
@@ -218,7 +443,7 @@
     il sistema operativo della macchina client ma dare questo livello di accesso a codice
     insicuro significa esporre il sistema ad alti rischi di sicurezza per queste ragioni
     il browser deve esporre API che rendano possibili le operazioni richieste dal sito
-    senza però compromettere la macchina host.
+    senza però compromettere la macchina host.\\
     Firefox non è direttamente responsabile della sicurezza del sistema, questo aspetto è
     invece gestito da rendering engine Gecko di cui Firefox è il front-end.
     Gecko applica quanto detto separando il codice eseguito in compartimenti
@@ -379,7 +604,7 @@
             si tratta di un accesso \code{cross-origin} se invece è uno solo dei due a sussumere allora
             vi è una differenza di privilegi. L'algoritmo di decisione impiegato da Gecko è rappresentato
             in questo grafico:
-            \begin{figure}[h]
+            \begin{figure}[ht]
                 \centering                                                  %% centrata
                 \includegraphics[width=0.5\textwidth]{computing-a-wrapper}  %% il file si chiama "computing-a-wrapper", larga 0.5 volte la largezza del testo
                 \caption{Computare un wrapper}                              %% sotto l'immagine c'è una linea descrittiva
@@ -405,9 +630,9 @@
             Semmai il codice privilegiato avesse bisogno di conoscere lo stato corrente dell'oggetto la
             visione Xray può venire attenuata programmaticamente accedendo alla prorpietà \code{.wrappedJSObject},
             ma a questo punto non si avrebbero piu garanzie di sicurezza su di esso, nè sui "figli".
-\newpage
 
-\chapter{Estensioni nel dettaglio}
+
+\chapter{WebExtension nel dettaglio}
     \Nota{Approfondire il ruolo di \WebExtensionPolicy nelle chiamate IPC}\\
     \Nota{Approfondire il ruolo di \ContentSecurityPolicy nelle chiamate agli API }\\
     Quanto segue descrive la logica e le strutture che implementano il sistema delle WebExtensions a runtime,
@@ -455,12 +680,18 @@
         descritti da interfacce \idl ed implementati in codice nativo, eccetto \code{mozIExtensionProcessScript.idl}
         scritto direttamente in Javascript.
          
+    \section{}
+    \label{webextension-api-rpc}
+        Il codice del framework può essere trovato nella cartella \code{toolkit/components/extensions/}, è composto
+        da molti file che suddividerò in tre categorie: core, integrativi ed implementativi.
+        I file di core compongono 
 
-\newpage
 
-\cite{security_principal}
+\chapter{Conclusioni}
+
 
 \printbibliography
+
 
 \end{document}
 %% END ARTICOLO
