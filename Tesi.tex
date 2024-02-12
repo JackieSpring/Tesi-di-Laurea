@@ -348,14 +348,14 @@
 
 \chapter{Scenario e ambiente sperimentale}
     Il capitolo descrive i presupposti che hanno guidato la sperimentazione e l'ambiente
-    informatico in cui si è svolta. La \Sezione{specifiche-e-piattaforma} è una rapida descrizione
+    informatico in cui si è svolta. La \Sezione{sec:specifiche-e-piattaforma} è una rapida descrizione
     del sistema informatico usato durante il corso delle ricerche e dell'installazione
-    Firefox utilizzata mentre la \Sezione{threat-scenario} illustra il modello di minaccia
-    considerato. Infine la \Sezione{estensione-vuln} introduce all'estensione fantoccio 
-    bersagliata dagli attacchi, verrà approfondita nel \Capitolo{attaccando-vuln}.
+    Firefox utilizzata mentre la \Sezione{sec:threat-scenario} illustra il modello di minaccia
+    considerato. Infine la \Sezione{sec:estensione-vuln} introduce all'estensione fantoccio 
+    bersagliata dagli attacchi, verrà approfondita nel \Capitolo{cap:attaccando-vuln}.
 
     \section{Specifiche applicazione e piattaforma}
-    \label{specifiche-e-piattaforma}
+    \label{sec:specifiche-e-piattaforma}
         Per la mia ricerca ho svolto i test utilizzando l'ultima versione corrente di
         Mozilla Firefox v122.0 installata su MacOS Monterey v12.5 con processore Apple M1.
         Il codice sorgente studiato è stato scaricato dalla repository github ufficiale di mozilla,
@@ -364,7 +364,7 @@
         L'applicazione è stata compilata seguendo le istruzioni riportate sul sito ufficiale di mozilla \cite{mozilla-build-firefox}.
 
     \section{Scenario}
-    \label{threat-scenario}
+    \label{sec:threat-scenario}
         Per indirizzare la mia ricerca ho deciso di lavorare entro i limiti di uno scenario
         che potesse modellizzare una situazione d'attacco reale in modo quantopiù generale e vero-simile.
         Ho definito due attori interessati nella scena, un attaccante e una vittima, e due sistemi
@@ -380,15 +380,15 @@
         dall'attaccante.
         Il sistema informatico della vittima ospita una istanza del browser Firefox sulla
         quale è stata installata una estensione vulnerabile che è stata rappresentata nel mio ambiente
-        di ricerca dall'estensione \vuln di cui si parlerà nella \Sezione{estensione-vuln}.
+        di ricerca dall'estensione \vuln di cui si parlerà nella \Sezione{sec:estensione-vuln}.
         L'attaccante non ha alcun modo di accedere o contattare direttamente il sistema informatico della vittima. 
 
 
     \section{L'estensione \vuln}
-    \label{estensione-vuln}
+    \label{sec:estensione-vuln}
         Ritenendo che la sola analisi statica del codice sorgente di Firefox non potesse essere
         sufficiente ai fini del mio studio, ho deciso di simulare lo scenario descritto nella
-        \Sezione{threat-scenario} creando e installando nel browser una estensione che contenesse
+        \Sezione{sec:threat-scenario} creando e installando nel browser una estensione che contenesse
         un qualche errore logico sfruttabile da un potenziale attaccante per tentare di compromettere
         il sistema informatico della vittima.
         Basandomi sulla Top-Ten Owasp delle vulnerabilità nelle applicazioni web \cite{owasp-top-ten}, ho ritenuto
@@ -489,6 +489,7 @@
         \end{itemize}
 
     \section{Sicurezza livello script}
+    \label{sec:sicurezza-script}
         Il codice Javascript eseguito da Gecko non proviene solo da fonti terze come pagine web o estensioni,
         l'interfaccia grafica del browser (Firefox) e la logica sono controllati da moduli javascript ad
         alti privilegi di accesso pertanto gli script web non possono eseguire nello stesso ambiente del
@@ -501,6 +502,7 @@
         separazione dei processi non è sufficiente a gestire proprietà di linguaggio.
 
         \subsection{Security Policy}
+        \label{sec:sicurezza-script-security-policy}
             Una Security Policy è una definizione di che cose significhi "essere sicuro" per un sistema,
             nel caso di Gecko definisce il livello di accesso garantito verso un oggetto da parte di un
             altro oggetto in relazione a due rapporti: di Origine e di Privilegi.
@@ -617,6 +619,7 @@
             \end{figure}
 
         \subsection{Xray Vision}
+        \label{sec:sicurezza-xray-vision}
             Javascript è un linguaggio molto malleabile il che lo rende imprevedibile in una contesto di
             sicurezza, oggetti provenienti da compartimenti insicuri potrebbero venire adeguatamente
             modificati per ingannare gli script privilegiati ad eseguire codice malevolo; per arginare
@@ -710,12 +713,6 @@
         \todo{come viene invocata una funzione?}
         \todo{come si ottiene il valore di ritorno?}
 
-
-\chapter{Attaccando vuln}
-\label{cap:attaccando-vuln}
-    In questo capitolo tratterò le difese applicate all'ambiente delle estensioni e 
-    indagherò i processi in atto dietro ai risultati dei miei tentativi d'attacco.
-
     \section{Le difese delle estensioni}
         Nel \Capitolo{cap:infrastruttura-sicurezza-firefox} ho discusso il sistema di sicurezza generale
         degli script in Firefox, in questa sezione si mostreranno le difese specifiche dell'ambiente
@@ -786,6 +783,214 @@
             L'implementazione del WebExtension API è collocata nel Parent Process all'interno
             di una Sandbox che esegue come Entità di Sistema \refSection{sec:security-principal} ed ha
             accesso a molti servizi del browser (vedi \file{ExtensionCommon.sys.mjs} \method{\_createExtGlobal}).
+
+
+\chapter{Analisi di \vuln}
+\label{cap:analisi-vuln}
+    Questo capitolo illustra gli script e le componenti che verranno abusate dagli attacchi
+    discussi nel \refChapter{cap:attaccando-vuln}.
+    La \refSection{sec:analisi-vuln-manifest} tratta l'analisi del manifest, file di presentazione
+    sia per le estensioni che per questo capitolo,
+    a seguire la \refSection{sec:analisi-vuln-sidebar} discuterà del codice dietro la sidebar
+    di \vuln e le istruzioni responsabili di aver introdotto la vulnerabilità nell'estensione,
+    infine nella \refSection{sec:analisi-vuln-content-script} si mostra il codice del
+    content script che giocherà un ruolo chiave durante gli attacchi.
+
+    \section{Il \manifest}
+    \label{sec:analisi-vuln-manifest}
+        Ora che l'ambiente WebExtension è stato discusso approfonditamente è il momento di
+        osservare una estensione fatta e finita e comprendere se frammenti di codice vulnerabile
+        possano costituire realmente una minaccia per l'utente che l'ha installata.
+        L'analisi incomincia dal \manifest dell'estensione riportato nel listato seguente:
+        \begin{lstlisting}
+    {
+        "manifest_version": 2,
+        "name": "vuln",
+        "version": "1.0",
+        "description": "vuln",
+
+        "content_scripts" : [
+            {
+            "matches":[ "*://localhost/*", "*://127.0.0.1/*", "*://www.attacker.xyz/*" ],
+            "js": ["content/csMain.js"],
+            "run_at": "document_end"
+            }
+        ],
+
+        "sidebar_action": {
+            "default_title": "Vuln sidebar",
+            "default_panel": "sidebar/page.html"
+        },
+
+        "background" : {
+            "page": "background/bgPage.html",
+            "persistent": false
+        },
+
+        "permissions": [
+            "storage"
+        ]
+    }
+        \end{lstlisting}
+        Gia dalla prima voce otteniamo una informazione importante, si tratta di un Manifesto Versione 2,
+        questo significa che i content script non saranno soggetti a restrizioni di Content Security Policy.
+        La voce \code{"content\_scripts"} di \vuln dichiara un solo content script attivo su qualsiasi pagina ospitata dalla
+        lista \code{"matches"} di pattern d'origine, i tre pattern di \vuln sono da interpretare come:
+        \textit{"qualsiasi porta e qualsiasi protocollo sui domini localhost, 127.0.0.1 e www.attacker.xyz"},
+        il codice dello script si strova nel file \file{content/csMain.js} e deve essere eseguito
+        alla fine del caricamento della pagina (voce \code{"run\_at"}), probabilmente perché avrà bisogno
+        di accedere ad elementi del documento html, elementi che devono avere il tempo di essere caricati.
+        La voce \code{"sidebar\_action"} dichiara che l'estensione intende aggiungere un pannello di sidebar
+        che visualizza il documento \file{sidebar/page.html} il cui fine è ancora ignoto, analogamente
+        il browser dovrà ospitare anche una finestra in background \file{background/bgPage.html}, entrambe
+        queste finestre avranno accesso all'api \code{"storage"} come indicato nell'ultima voce \code{"permissions"};
+        pertanto è lecito supporre che almeno una di esse ospiti codice \JS e memorizzi dati nello storage.
+        
+
+    \section{La sidebar}
+    \label{sec:analisi-vuln-sidebar}
+        Come detto nella \refSection{sec:estensione-vuln}, per costruzione sappiamo gia che la vulnerabilità
+        risiede nella logica della sidebar. I listati seguenti mostrano rispettivamente il codice html del documento
+        visualizzato nella sidebar e lo script che ne determina il comportamento:
+
+        \begin{lstlisting}[caption={Contenuto di \file{sidebar/page.html}},captionpos=b,label=code:sidebar/page.html]
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="page.css" />
+    <script src="../shared/archive.js"></script>
+    <script defer src="sbMain.js"></script>
+    
+  </head>
+
+  <body>
+    <p>Archive:</p><br/>
+    <section id="output"></section>
+  </body>
+</html>
+        \end{lstlisting}
+
+        \begin{lstlisting}[caption={Contenuto di \file{sidebar/sbMain.js}},label=code:sidebar/sbMain.js]
+
+const output = document.getElementById("output");
+
+function updateArchiveView(arch) {
+
+    output.innerHTML = "";
+
+    for ( let data of arch ) {
+        let container = document.createElement("div");
+        let keyField = document.createElement("span");
+        let valField = document.createElement("span");
+        let br = document.createElement("br");
+
+        keyField.innerHTML = data.key + ": ";
+        valField.innerHTML = data.value;
+
+        container.appendChild( keyField );
+        container.appendChild(valField);
+        container.appendChild(br);
+
+        output.appendChild(container);
+    }
+}
+
+function main() {
+    getArchive()
+    .then( updateArchiveView );
+
+    addArchiveChangeListener( (storage) => { updateArchiveView(storage[ARCHIVE_NAME].newValue) } );
+}
+
+window.onload = main
+        \end{lstlisting}
+
+        Il codice della pagina non contiene informazioni rilevanti eccetto gli script inclusi
+        a righe 6 e 7. \file{../shared/archive.js} è uno script di utility sul quale non mi soffermerò, basti sapere
+        che dichiara le funzioni \code{getArchive()} e \code{addArchiveListener()}, rispettivamente
+        per ottenere l'archivio di storage e registrare un listener richiamato al cambiamento dei
+        dati nello storage, mentre \file{sbMain.js} è lo script dietro al comportamento della
+        pagina. La sua logica è semplice: la funzione \code{updateArchiveView()} ottiene in input
+        una lista di oggetti contenenti una coppia \code{key} e \code{value}, per ogniuno di essi
+        inserisce nel documento due elementi html \code{<span>} che mostrano il valore di \code{key}
+        e \code{value} rispettivamente; \code{updateArchiveView} viene invocata al caricamento
+        della finestra e ogni volta che l'archivio è modificato. A righe 14 e 15 della funzione 
+        si trova la vulnerabilità, l'assegnazione diretta dei valori all'attributo \attr{innerHTML}
+        degli elementi \code{<span>}.\\
+        Seppure appaia come attributo, la proprietà \attr{innerHTML} è in realtà una coppia di metodi
+        getter/setter, quando si assegna un valore viene richiamato il metodo setter che inserisce
+        il valore tra il tag iniziale e terminale dell'elemento modificato come codice html valido
+        che verrà eseguito all'inserimento nella pagina. Di conseguenza se \code{key} o \code{value}
+        dovessero essere stringhe contenenti sintassi html allora verrebbero eseguite aprendo la
+        strada a una possibile compromissione della pagina, ma da dove provengono i valori della
+        coppia?
+
+    \section{Il content script}
+    \label{sec:analisi-vuln-content-script}
+        Dal punto di vista del sistema di sicurezza il codice del content script è considerato
+        una Entità Estesa (vedi \refSection{sec:security-principal}) che ha come oggetto
+        globale la \code{window} della pagina web su cui sta venendo eseguita, la quale
+        però è una Entità di Contenuto; pertanto secondo la Security Policy di Firefox (vedi \refSection{sec:sicurezza-script-security-policy})
+        i content script hanno una visione ridotta degli oggetti del DOM (vedi \refSection{sec:sicurezza-xray-vision}).
+        Per avere visione delle proprietà reali il content script deve mitigare lo strato
+        di sicurezza e ottenere l'oggetto sottostante, a questo serve l'attributo \attr{wrappedJSObject},
+        richiamabile dagli script su oggetti collocati in compartimenti meno "privilegiati".
+        Terminato il preambolo, ecco riportato il codice \JS dietro al content script di \vuln:
+        \begin{lstlisting}
+
+const getPayload = ( obj ) => {
+
+    if ( obj instanceof Document ) {
+        // Cerca Elementi "key" e "value" nel document
+        obj = obj.wrappedJSObject;
+        return { 
+            key: obj.getElementById("key")?.innerHTML, 
+            value: obj.getElementById("value")?.innerHTML 
+        };
+    }
+    else if ( obj instanceof Event ) {
+        // Cerca attributi "key" e "value" nei dettagli dell'evento custom
+        obj = obj.wrappedJSObject;
+        return {
+            key: obj.detail.key,
+            value: obj.detail.value,
+        }
+    }
+    else
+        throw new Error("Cannot recover payload from this object");
+}
+
+
+window.addEventListener( "trigger", (ev) => {
+    const payload = getPayload( ev );
+    payload && browser.runtime.sendMessage( payload );
+} )
+
+window.onload = () => {
+    const payload = getPayload( document )
+    payload && browser.runtime.sendMessage( payload );
+}
+
+        \end{lstlisting}
+        La funzione \code{getPayload} definita nelle prime righe del file estrapola la coppia
+        \code{key} \code{value} dall'oggetto passatogli come argomento che può essere istanza
+        di un documento DOM o di un evento. Se si tratta di un documento allora i dati vengono
+        cercati nel contenuto della pagina come testo html racchiuso rispettivamente nel corpo
+        degli elementi \code{key} e \code{value}; invece se l'oggetto è un evento allora i
+        dati sono estrapolati dal suo campo \attr{detail}. In entrambi i casi la visione Xray
+        deve essere disattivata.
+        Infine il ritrovamento della coppia viene notificato al runtime e i dati inviati come
+        corpo del messaggio, successivamente lo script di background li immagazzinerà nello
+        storage per poter essere letti e visualizzati dalla sidebar.\\
+        Sui dati non viene fatto alcun controllo né sul tipo, né sul contenuto né sulla loro
+        integrità percui il codice della sidebar non ha modo di sapere se le stringhe che sta
+        inserendo nella propria finestra contengano sequenze di caratteri potenzialmente malevoli.
+
+
+\chapter{Attaccando \vuln}
+\label{cap:attaccando-vuln}
+    si insomma dopo tutta sta trafila giungiamo ai fatti.
 
 
 \chapter{Conclusioni}
