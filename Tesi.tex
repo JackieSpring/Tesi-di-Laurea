@@ -366,7 +366,7 @@
     \section{Scenario}
     \label{sec:threat-scenario}
         Per indirizzare la mia ricerca ho deciso di lavorare entro i limiti di uno scenario
-        che potesse modellizzare una situazione d'attacco reale in modo quantopiù generale e vero-simile.
+        che potesse modellizzare una situazione d'attacco reale in modo quanto più generale e vero-simile.
         Ho definito due attori interessati nella scena, un attaccante e una vittima, e due sistemi
         informatici coinvolti appartenenti a l'uno e l'altro attore.
         L'attaccante è interessato a compromettere il sistema informatico della vittima come parte di 
@@ -399,10 +399,10 @@
         codice \JS allora sarebbe capace di performare attacchi di Cross-Site Scripting aprendo alla possibilità
         di una ancora più profonda compromissione del sistema. Normalmente questo genere di attacchi viene
         attuato sul codice front-end di una applicazione web per abusare delle funzionalità dell'applicazione
-        a scapito dell'utente oppure come trampolino verso altre applicazioni ( si pensi agli
+        a scapito dell'utente oppure come trampolino verso altre applicazioni (si pensi agli
         attacchi di Cross-Site Request Forgery in cui la pagina vulnerabile viene sfruttata per
         inviare richieste verso una seconda applicazione).\\
-        Ogni contensto \JS ha associato un oggetto \code{document}, tra Content Script, Background Script, sidebar,
+        Ogni contesto \JS ha associato un oggetto \code{document}, tra Content Script, Background Script, sidebar,
         popup e pagina opzioni, ogni estensione ha potenzialmente almeno cinque finestre su cui tentare
         html injection, ho scelto di inserire la vulnerabilità nella finestra della sidebar, le ragioni di
         questa scelta sono tre:
@@ -428,7 +428,7 @@
         La figura \ref{fig:sidebar-screenshot} mostra la sidebar di \vuln aperta sulla sinistra della pagina
         web controllata dall'attaccante, il riquadro scuro in basso mostra invece il codice html del documento.
         La sidebar sta visualizzando dieci coppie chiave-valore che l'estensione ha estrapolato dal codice
-        del sito malevolo, nel \Capitolo{attaccando-vuln} si approfondirà in che modo l'attaccante sfrutta i
+        del sito malevolo, nel \Capitolo{attaccando-vuln}\todo{fix} si approfondirà in che modo l'attaccante sfrutta i
         valori di queste coppie per iniettare codice html.
 
         \begin{figure}[ht]
