@@ -564,17 +564,17 @@
             che è oggetto globale di ogni compartimento. I criteri di privilegio sono invece determinati
             secondo l'Entità di Sicurezza del compartimento.
             \begin{itemize}
-                \item \textbf{Same-Origin} È il caso più comune, all'oggetto accedente viene concesso un
+                \item \textbf{Same-Origin.} È il caso più comune, all'oggetto accedente viene concesso un
                     wrapper trasparente che garantisce accesso completo all'oggetto richiesto come se 
                     fosse parte dello stesso compartimento. 
 
-                \item \textbf{Cross-Origin} Gecko assegna un wrapper cross-origin che limita l'accesso 
+                \item \textbf{Cross-Origin.} Gecko assegna un wrapper cross-origin che limita l'accesso 
                     secondo la Same-Origin Policy.
 
-                \item \textbf{Privilegio Maggiore} Se lo scope acceduto ha privilegi minori, allora si
-                    ottiene un wrapper Xray (di più su Xray Vision in seguito)
+                \item \textbf{Privilegio Maggiore.} Se lo scope acceduto ha privilegi minori, allora si
+                    ottiene un wrapper Xray (di più su Xray Vision in seguito\todo{metti ref al punto esatto})
 
-                \item \textbf{Privilegio Minore} Se lo scope acceduto ha privilegi maggiori, allora si
+                \item \textbf{Privilegio Minore.} Se lo scope acceduto ha privilegi maggiori, allora si
                     ottiene un wrapper opaco che nega l'accesso all'oggetto.
             \end{itemize}
 
@@ -585,15 +585,15 @@
             Per determinare il rapporto tra due entità si verifica se ciascuna sussume l'altra.
             Le quattro entità sono:
             \begin{itemize}
-                \item \textbf{Entità di sistema} Supera ogni check di sicurezza, sussume sè stessa e
+                \item \textbf{Entità di sistema.} Supera ogni check di sicurezza, sussume sè stessa e
                     tutte le altre entità. I compartimenti che eseguono codice di sistema sono istanze
                     di questa entità.
 
-                \item \textbf{Entità di Contenuto} È associata ai contenuti web ed è definita 
+                \item \textbf{Entità di Contenuto.} È associata ai contenuti web ed è definita 
                     dall'origine del contenuto, sussume ogni altra entità con cui condivida
                     l'origine.
 
-                \item \textbf{Entità Espansa} È definita come una lista di "origini" su cui si ha accesso
+                \item \textbf{Entità Espansa.} È definita come una lista di "origini" su cui si ha accesso
                     completo, essa sussume ogni entità che abbia inclusa la propria origine nella lista
                     ma non è sussunta da nessuna di esse.
                     Un esempio di impiego delle entità espanse sono i Content Script delle estensioni che
@@ -601,7 +601,7 @@
                     espansa è utilizzata per garantire permessi cross-origin allo script senza però
                     renderlo entità di sistema.
 
-                \item \textbf{Entità Nulla} Fallisce quasi tutti i check e non sussume sè stesso, può
+                \item \textbf{Entità Nulla.} Fallisce quasi tutti i check e non sussume sè stesso, può
                     essere acceduto solo da un'entità di sistema.
             \end{itemize}
             Le entità non modellizzano solo il livello di privilegio del compartimento ma anche l'origine
