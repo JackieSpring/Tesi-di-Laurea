@@ -49,7 +49,7 @@
 \newcommand{\JSON}{JSON }
 \newcommand{\json}{JSON }
     % Estensioni
-\newcommand{\manifest}{\code{manifest.json} }
+\newcommand{\manifest}{\code{manifest.json}}
     % Browser
 \newcommand{\idl}{\code{idl} }
 \newcommand{\ipdl}{\code{ipdl} }
@@ -128,11 +128,11 @@
 
 \chapter{Concetti fondamentali}
 \todo{Aggiungi riferimenti alle nuove sezioni \ref{dom} e \ref{webextension-api}}
-    Il capitolo fa un escursus su definizioni ed elementi utili per la comprensione dei capitoli che seguiranno,
+    Il capitolo fa un escursus\todo{excursus} su definizioni ed elementi utili per la comprensione dei capitoli che seguiranno,
     nella \Sezione{I-linguaggi-fondamentali-del-www} si introducono i tre linguaggi fondamentali del web, HTML5,
     CSS e Javascript al quale dedico la sezione \Sezione{javascript}. CSS verrà soltanto menzionato poiché non ha
     avuto rilievo nella mia ricerca. Seguono due sezioni di presentazione alle estensioni browser, \Sezione{breve_storia_delle_estensioni}
-    \todo{e degli attacchi alle estensioni} browser  è un rapido riassunto sulla storia delle estensioni 
+    \todo{e degli attacchi alle estensioni}  è un rapido riassunto sulla storia delle estensioni 
     mentre \Sezione{anatomia_di_una_web_extension} spiega la struttura di una WebExtension.
 
 
@@ -149,7 +149,7 @@
         il comportamento del documento; per esempio il contenuto del tag \code{<script>} può essere interpretato 
         come codice Javascript ed eseguito al volo dal browser, ma lo stesso tag \code{<script>} può anche importare
         uno script da un URL o file sorgente.
-        Il frammento di codice \ref{code:esempio-html} è un esempio di utilizzo del linguaggio HTML5, in queste
+        Il frammento di codice nel Listato~\ref{code:esempio-html} è un esempio di utilizzo del linguaggio HTML5, in queste
         righe viene creato un documento che mostra a schermo la scritta "Archive:" ed include tre altre risorse:
         il tag \code{<link>} include e applica alla pagina il foglio di stile \code{page.css} mentre i due tag
         \code{<script>} caricano ed eseguono due script Javascript.
@@ -216,7 +216,7 @@
         Questo script dichiara un costruttore \code{Letter()} che assegna alle proprie istanze l'attributo \attr{number},
         inoltre tutte le istanze di \code{Letter} ereditano il metodo \method{getNumber}, assegnato al prototipo del costruttore.
         Infine si assegnano alle variabili \code{a},\code{b} e \code{z} tre diverse istanze di \code{Letter}.
-        La figura \ref{fig:javascript-prototype} illustra gli oggetti discussi e i vari riferimenti ai prototipi, \code{Function.prototype}
+        La Figura \ref{fig:javascript-prototype}\todo{tutte le figure devono avere una caption} illustra gli oggetti discussi e i vari riferimenti ai prototipi, \code{Function.prototype}
         è il prototipo per tutti gli oggetti funzione mentre \code{Object.prototype} è il prototipo base di tutti gli oggetti.
 
         \begin{lstlisting} [
@@ -262,8 +262,8 @@
         dinamici in un World Wide Web fatto di documenti statici, ma è a partire dal 1999 che
         il browser diventa programmabile quando Internet Explorer 4 iniziò a supportare la modifica
         dell'interfaccia utente. Il 2005 vede la nascita di Firefox e l'arrivo degli UserScript,
-        piccoli script per la modifica delle pagine web installabili nel browser ( precursori dei
-        WebExtension Content Script approfonditi nelle prosime sezioni ).
+        piccoli script per la modifica delle pagine web installabili nel browser (precursori dei
+        WebExtension Content Script approfonditi nelle prosime sezioni).
         Lo sviluppo di estensioni cross-browser fu per molto tempo una sfida, non c'era uno standard
         comune e ogni browser esponeva questa o quella funzionalità in piu rispetto agli altri; quando
         uscii, Google Chrome non era da meno, ma negli anni la sua ampia diffusione impose lo standard
@@ -297,25 +297,25 @@
         Il \manifest può contenere riferimenti a file di altro tipo che modificheranno il comportamento e l'aspetto
         dell'applicazione e si suddividono in:
         \begin{itemize}
-            \item \bold{background} Sono file che rispondo a eventi del browser, vengono chiamati di background 
+            \item \bold{Background}: Sono file che rispondo a eventi del browser, vengono chiamati di background 
                     perché sono eseguiti in modo silenzioso e operano con le componenti interne dell'applicazione.
                     Questi script non possono accedere direttamente alle pagine web.
 
-            \item \bold{sidebar, popup e option page} Sono delle interfacce utente introdotte dall'estensione che
+            \item \bold{Sidebar, popup e option page}: Sono delle interfacce utente introdotte dall'estensione che
                     vengono visualizzate sullo schermo in modo più o meno permanente. Le \textit{sidebar} appaiono sul lato
                     della finestra e rimangono visibili fino alla chiusura manuale da parte dell'utente, i \textit{popup} sono
                     piccole interfacce grafiche disegnate alla pressione di un bottone sulla toolbar o sulla addressbar.
                     La \textit{option-page} è mostrata quando l'utente accede alla pagina di modifica delle preferenze
                     dell'estensione.
 
-            \item \bold{content script} Sono script usati per accedere e manipolare le finestre delle pagine web. Si
+            \item \bold{Content script}: Sono script usati per accedere e manipolare le finestre delle pagine web. Si
                     potrebbe dire che sono la controparte UI dei \textit{background} script ma a differenza di questi
                     ultimi non possono interagire con le componenti interne del browser. I \textit{content script} 
-                    vengono eseguiti solo sulle pagine che rispettano i criteri di origine specificati nel \manifest .
+                    vengono eseguiti solo sulle pagine che rispettano i criteri di origine specificati nel \manifest{}.
                     A differenza delle pagine web i \textit{content script} possono effettuare richieste cross-domain e
                     usare un piccolo sottoinsieme del WebExtension API.
 
-            \item \bold{Web accessible resources} Sono risorse di qualsiasi tipo rese accessibili agli altri script
+            \item \bold{Web accessible resources}: Sono risorse di qualsiasi tipo rese accessibili agli altri script
                     dell'estensione.
 
         \end{itemize}
