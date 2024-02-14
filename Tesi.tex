@@ -642,7 +642,7 @@
 
 \chapter{WebExtension nel dettaglio}
 \label{cap:webextension-dettaglio}
-    Il codice del WebExtension framework può essere trovato nella cartella \file{toolkit/components/extensions/}, è composto
+    Il codice del WebExtension framework può essere trovato nella cartella \file{toolkit/} \file{components/extensions/}, è composto
     da molti file che suddividerò in tre categorie: core, integrativi ed implementativi.\\
     I file di \bold{core} definiscono logica e strutture in ambiente nativo che verranno indirettamente utilizzate da
     tutti gli altri file, eseguono a livello di processo e svolgono ruoli di gestione della comunicazione tra
@@ -834,8 +834,8 @@
         \end{lstlisting}
         Gia dalla prima voce otteniamo una informazione importante, si tratta di un Manifesto Versione 2,
         questo significa che i content script non saranno soggetti a restrizioni di Content Security Policy.
-        La voce \code{"content\_scripts"} di \vuln dichiara un solo content script attivo su qualsiasi pagina ospitata dalla
-        lista \code{"matches"} di pattern d'origine, i tre pattern di \vuln sono da interpretare come:
+        La voce \code{"content\_scripts"} di \vuln{} dichiara un solo content script attivo su qualsiasi pagina ospitata dalla
+        lista \code{"matches"} di pattern d'origine, i tre pattern di \vuln{} sono da interpretare come:
         \textit{"qualsiasi porta e qualsiasi protocollo sui domini localhost, 127.0.0.1 e www.attacker.xyz"},
         il codice dello script si strova nel file \file{content/csMain.js} e deve essere eseguito
         alla fine del caricamento della pagina (voce \code{"run\_at"}), probabilmente perché avrà bisogno
