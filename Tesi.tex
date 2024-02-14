@@ -474,13 +474,13 @@
         \end{itemize}
         Ci sono molti tipi di Content Process di cui due sono di particolare interesse per la mia ricerca:
         \begin{itemize}
-            \item \textbf{WebExtensions Content Process} È utilizzato per caricare pagine
+            \item \textbf{WebExtensions Content Process}: È utilizzato per caricare pagine
                 in background e i subframe delle estensioni web; esiste una sola istanza di
                 questo processo ed ha assegnato il remote-type "extension" che garantisce 
                 l'accesso al WebExtensionAPI e alla Shared Memory. Tutte le estensioni condvidono
                 questo processo e sono visibili tra di loro.
 
-            \item \textbf{Isolated Web Content Process} Sono usati per ospitare contenuti web attribuiti ad un sito,
+            \item \textbf{Isolated Web Content Process}: Sono usati per ospitare contenuti web attribuiti ad un sito,
                 il codice web eseguito in questi processi è considerato insicuro e l'accesso diretto agli
                 API di sistema non è permesso. Un nuovo web content viene allocato per ogni sito visitato su
                 una browser tab, qualsiasi dominio visitato su una tab differente produce un nuovo processo
@@ -498,14 +498,14 @@
         il browser deve poter accedere a oggetti del web content; la separazione in processi è troppo 
         restrittiva per questi utilizzi; inoltre Javascript è un linguaggio a tipizzazione debole, funzionale
         e di cui le strutture di supporto alla programmazione ad oggetti sono modificabili, un esempio dei
-        rischi introdotti da questa dinamicità sono gli attacchi di prototype pollution. Il modello di
+        rischi introdotti da questa dinamicità sono gli attacchi di prototype pollution\todo{parlane prima, dai citazione}. Il modello di
         separazione dei processi non è sufficiente a gestire proprietà di linguaggio.
 
         \subsection{Security Policy}
         \label{sec:sicurezza-script-security-policy}
-            Una Security Policy è una definizione di che cose significhi "essere sicuro" per un sistema,
+            Una Security Policy è una definizione di che cosa significhi "essere sicuro" per un sistema,
             nel caso di Gecko definisce il livello di accesso garantito verso un oggetto da parte di un
-            altro oggetto in relazione a due rapporti: di Origine e di Privilegi.
+            altro oggetto in relazione a due rapporti: Origine e Privilegi.
             Gli oggetti dotati di stessa "origine" sono detti \code{"same-origin"} e hanno libero accesso
             alle proprietà, oggetti dotati di "origine" differente sono detti \code{"cross-origin"}
             e hanno accesso molto ristretto alle proprietà dell'altro.\\
@@ -521,16 +521,16 @@
             che condividono la stessa origine sono dette \code{same-origin}, altrimenti \code{cross-origin}.
             Le restrizioni imposte dalla Same-Origin Policy dipendono dal contesto d'uso:
             \begin{itemize}
-                \item \textbf{Rete} Solitamente una risorsa di rete \code{cross-origin} ottiene accesso in
+                \item \textbf{Rete}. Solitamente una risorsa di rete \code{cross-origin} ottiene accesso in
                     scrittura ed embedding mentre la lettura viene proibita, cioé viene reso possibile
                     inviare richieste cross-origin e incorporare risorse esterne ma non è possibile
                     conoscere il contenuto della risposta.
                     Le regole d'accesso di rete \code{cross-origin} possono essere modificate dalla risorsa
                     acceduta tramite header http o tag html \code{meta}.
 
-                \item \textbf{Storage} Gli spazi di archiviazione sono separati e indipendenti per ogni origine
+                \item \textbf{Storage}. Gli spazi di archiviazione sono separati e indipendenti per ogni origine
 
-                \item \textbf{Javascript API} Due sono gli oggetti visibili a \code{cross-origin}: \code{window}
+                \item \textbf{Javascript API}. Due sono gli oggetti visibili a \code{cross-origin}: \code{window}
                     e \code{location}, di questi solo un sottoinsieme di proprietà è accessibile, tra queste
                     sono notevoli \code{.postMessage} di \code{window} che consente di scambiare dati \code{cross-origin}
                     tra gli script e \code{.href} di \code{location}, accessibile solo in scrittura, permette di
@@ -545,7 +545,7 @@
                 risiedenti nella stessa directory.
 
             \subsubsection{Iframe pitfall}
-            \Nota{Rimuovere?}
+            \Nota{Rimuovere?}\todo{Se non e' funzionale al discorso che fai dopo, puoi anche rimuoverla}
                 L'implementazione degli iframe risente di una piccola falla di referenza; quando viene inserito
                 nel documento, \code{iframe} incorpora la pagina \code{about:blank} che viene sostituita non
                 appena la risorsa è caricata, pertanto lo stesso iframe mostra agli API javascript oggetti con
