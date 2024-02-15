@@ -6,6 +6,7 @@
 \usepackage{todonotes}
 \usepackage[backend=biber]{biblatex}
 
+
 \graphicspath{{img/}}
 \addbibresource{Tesi.bib}
 
@@ -47,9 +48,9 @@
     % Utility
 \newcommand{\vuln}{\textit{"vuln"}}
 \newcommand{\www}{World Wide Web }
-\newcommand{\JS}{Javascript }
-\newcommand{\JSON}{JSON }
-\newcommand{\json}{JSON }
+\newcommand{\JS}{Javascript}
+\newcommand{\JSON}{JSON}
+\newcommand{\json}{JSON}
     % Estensioni
 \newcommand{\manifest}{\code{manifest.json} }
     % Browser
@@ -61,6 +62,7 @@
 \newcommand{\ContentSecurityPolicy}{\code{ContentSecurityPolicy} }
     % Html
 \newcommand{\tagHTML}[1]{\code{<#1>}}
+\newcommand{\img}{\tagHTML{img}}
 \newcommand{\meta}{\tagHTML{meta}}
 \newcommand{\script}{\tagHTML{script}}
 \newcommand{\iframe}{\tagHTML{iframe}}
@@ -529,6 +531,7 @@
             scope meno "privilegiati".
 
         \subsection{Same-Origin Policy}
+        \label{sec:sicurezza-script-same-origin-policy}
             La Same-Origin Policy è un insieme di regole d'accesso a risorse situate su altre "origini".
             L' "origine" di una risorsa è definita come tripla di protocollo, dominio e porta, due risorse
             che condividono la stessa origine sono dette \code{same-origin}, altrimenti \code{cross-origin}.
@@ -1298,23 +1301,151 @@ window.onload = () => {
                 ma grazie al tag \meta sarebbe possibile rimpiazzare del tutto la finestra con
                 una identica ma controllata dall'attaccante.
 
-        \subsection{Esecuzione di script da origini fidate}
-            Usando l'attributo \code{srcdoc} è stato possibile usare gli \iframe per eseguire un tag \script nella
-            pagina dell'estensione, ma non è stato possibile caricare codice arbitrario a causa delle 
-            restrizioni di CSP che impediscono l'ottenimento di una risorsa \JS da origini remote o inline
-            ma non da origini locali. Sotto le giuste condizioni le fonti locali potrebbero essere
-            sufficienti per compromettere il sistema della vittima. Per dimostrare quanto detto però
-            è necessario fare una piccola modifica ai codici di \vuln{}.\\
-            Introduco il file \file{sidebar/win.js} nel percorso della sidebar, il \refCode{code:win-js-example-1}
-            ne mostra il contenuto.
-            \begin{lstlisting}[label=code:win-js-example-1]
-                parent.document.body.innerHTML = "YOU WON"
-            \end{lstlisting}
-            Si tratta di un semplice defacciamento della pagina genitore, ai fini dell'esperimento si immagini
-            che \file{sidebar/win.js} contenga 
-            \begin{lstlisting}[label=code:iframe-win-js-example-1]
-                //
-            \end{lstlisting}
+
+            \subsection{Bypass via JSONP}
+                \subsubsection{Che cosa è JSONP}
+                Prima che il meccanismo CORS venisse integrato nei browser, la Same-Origin Policy (vedi \refSection{sec:sicurezza-script-same-origin-policy}) 
+                impediva la lettura di richieste cross-origin effettuate da codice \JS{}; questa politica ostacolava
+                lo scambio di dati JSON tra domini diversi e i programmatori front-end dovettero trovare una
+                alternativa. La SOP non ostacolava i tag \script{} e \img{}, ma leggere i dati ottenuti non era
+                comunque possibile, quindi si pensò di creare endpoint che, invece dei dati grezzi, restituissero
+                un file javascript contenente l'invocazione di una funzione e i dati richiesti passati come argomento.
+                A questo punto il programmatore front-end avrebbe iniettato nella propria pagina un tag \script{}
+                impostando l'endpoint dell'api come sorgente del file richiesto; al ricevimento della risposta 
+                da parte dell'api, il browser avrebbe eseguito il contenuto dello scrip, invocando la funzione.
+                Il \refCode{code:JSON-response-example} mostra i dati JSON ottenuti dall'api fittizio
+                \code{http://example/users?format=json} a fronte di una richiesta; se la pagina web fosse
+                same-origin con l'api, il contenuto della risposta verrebbe interpretato dal browser e restituito
+                allo script sottoforma di stringa, invece se le origini delle due parti sono cross-origin la richiesta
+                termina con un errore e la pagina web non ottiene i dati.\\
+
+                \begin{lstlisting}[
+                    label=code:JSON-response-example,
+                    caption={corpo di una risposta ricevuta dall'api JSON: \code{http://example/users?format=json}}
+                ]
+    [
+        {id: 1, name: 'user01'},
+        {id: 2, name: 'user02'}
+    ]
+                \end{lstlisting}
+
+                Supponiamo ora che lo stesso endpoint fornisca un api JSONP, invece di effettuare la richiesta
+                programmaticamente, lo script in esecuzione sulla finestra inietta nella propria pagina un
+                elemento \script fatto in questo modo: \code{<script src=http://example/users?format=jsonp\&callback=frontendFunction ></script>}
+                dove il parametro \code{"callback"} nell'URL indica all'api il nome della funzione che dovrà essere
+                invocata nel file di risposta (e gia definita dal programma front-end). Il \refCode{code:JSONP-response-example}
+                mostra il file di risposta ottenuto.
+
+                \begin{lstlisting}[
+                    label=code:JSONP-response-example,
+                    caption={corpo di una risposta ricevuta dall'api JSONP: \code{http://example/users?format=jsonp\&callback=forntendFunction}}
+                ]
+    frontendFunction([
+        {id: 1, name: 'user01'},
+        {id: 2, name: 'user02'}
+    ])
+                \end{lstlisting}
+
+                Con l'integrazione di CORS, JSONP è diventata una tecnologia superata, ma alcuni api importanti
+                lo supportano ancora per retrocompatibilità con le applicazioni legacy. Per esempio google
+                espone un api che restituisce opzioni di auto-completamento di query, accessibile dall'URL:
+                \code{http://google.com/complete/search?client=firefox\&q=YOURQUERY}, a questa richiesta si
+                ottiene l'array JSON mostrato nel \refCode{code:JSON-response-google}.
+
+                \begin{lstlisting}[
+                    label=code:JSON-response-google, 
+                    caption={JSON resituito da \code{http://google.com/complete/search?client=firefox\&q=YOURQUERY}}
+                    ]
+    ["YOURQUERY",["your query","yourquery s.r.o"],[],{"google:suggestsubtypes":[[512,19,10],[30,19]]}]
+                \end{lstlisting}
+
+                Non mi soffermerò sull'interpretazione dei dati in quanto superflui ai fini di questo articolo.
+                Lo stesso endpoint permette di ottenere gli stessi dati in formato JSONP, aggiungendo alla query
+                di richiesta l'attributo \code{jsonp=} seguito dall'identificatore della funzione che elaborerà
+                i dati. Il \refCode{code:JSONP-response-google} mostra la risposta JSONP dell'api, alla query di
+                richiesta precedente è stato appeso l'argomento \code{jsonp=myFunction}
+
+                \begin{lstlisting}[label=code:JSONP-response-google, caption={JSON resituito da \code{http://google.com/complete/search?client=firefox\&q=YOURQUERY\&jsonp=myFunction}}]
+    myFunction(["YOURQUERY",["your query","yourquery s.r.o"],[],{"google:suggestsubtypes":[[512,19,10],[30,19]]}])
+                \end{lstlisting}
+
+
+                \subsubsection{Eseguire codice arbitrario in \vuln}
+                Supponiamo adesso che vuln abbia bisogno di comunicare con gli api google e pertanto il
+                suo \manifest{} deve ridefinire la Content Security Policy dell'estensione in modo da
+                non bloccare queste richieste. Il \refCode{code:vuln-manifest-google} mostra tale
+                modifica della voce \code{"content\_security\_policy"}.
+
+                \begin{lstlisting}[label=code:vuln-manifest-google,caption={Voce \code{"content\_security\_policy"} nel \manifest{} di \vuln{}}]
+"content_security_policy":"script-src 'self' https://www.google.com;"
+                \end{lstlisting}
+
+                Sotto queste condizioni è possibile costruire un payload che carichi
+                codice \JS eseguito nello stesso compartimento dell'estensione. 
+                Per farlo servono:
+                \begin{enumerate}
+                    \item Un tag \script{} che carichi il codice JSONP ottenuto dall'api google.
+                    \item Un codice JSONP di callback costruito "correttamente"
+                    \item Un tag \iframe{} che racchiuda il tag \script{} nel suo campo \code{srcdoc}
+                            per bypassare la limitazione di \attr{innerHTML} ed eseguire il codice
+                            JSONP sotto la stessa origine dell'estensione.
+                \end{enumerate}
+                Con l'avverbio "correttamente" si intende una stringa che, combinata ai dati
+                introdotti dall'endpoint, sia eseguibile dal browser e non violi le condizioni
+                d'uso dell'api. È raro che gli endpoint JSONP accettino qualsiasi carattere 
+                fornito dal client, in questi casi è necessario ricorrere ad altre tecniche per
+                trasformare la stringa di codice in una stringa equivalente, priva dei caratteri
+                proibiti. La trattazione di queste tecniche è lasciata in sospeso poiché fuori dagli
+                obbiettivi dell'articolo. Per il lettore interessato all'argomento, rimando ad un
+                articolo di Gareth Heyes in cui viene mostrato un esempio di sintassi \JS{} priva di caratteri
+                alfa-numerici e parentesi \cite{gareth-heyes-js-no-alphanum}.\\
+                La figura \ref{fig:sidebar-jsonp-injection} mostra il risultato dell'iniezioni di
+                script JSONP nella sidebar di \vuln{} mentre il \refCode{code:JSONP-vuln-crafting} 
+                mostra il frammento di codice usato dall'attaccante per costruire il payload inettato.
+                
+                \begin{lstlisting}[label=code:JSONP-vuln-crafting]
+    
+    callback = "alert(browser.extension.getURL([]%2b[]))//"     
+    
+    url =  "https://www.google.com/"
+    url += "/complete/search?"
+    url += "client=chrome&q=123&jsonp="
+    url += callback  
+    
+    script = `<script src="${url}"></script>`
+    ifr =  `<iframe srcdoc="${script}" ></iframe>`' 
+    
+    payload = ifr
+                \end{lstlisting}
+
+                \begin{figure}[ht]
+                    \centering
+                    \includegraphics[width=0.8\textwidth]{sidebar-jsonp-injection.png}
+                    \caption{Risultato di una iniezione JSONP nella sidebar di \vuln{}}
+                    \label{fig:sidebar-jsonp-injection}
+                \end{figure}
+
+                Come si nota dal risultato, lo script iniettato mostra a schermo un popup
+                che contiene l'url associato all'estensione, il codice di callback chiama
+                infatti il metodo \code{browser.extension.getURL('')} del WebExtensionAPI
+                ed accessibile solo alle estensioni. Si notino due importanti dettagli:
+                il primo è l'argomento passato a \method{getURL}, si tratta della trascrizione
+                in URL-encoding della stringa \code{[]+[]}, in \JS{} questo codice è equivalente
+                alla stringa vuota; il secondo è la sequenza di caratteri \code{//} alla fine della
+                callback, in \JS{} marcano un commento, ovvero indicano che tutti i caratteri
+                a seguire non dovranno essere considerati dall'interprete; nel caso del payload
+                il commento è necessario per tagliare via i dati inseriti dall'api affinché
+                non provochino errori di compilazione.\\
+                %Seppure l'esempio mostrato sia innocuo, nelle giuste mani la possibilità di
+                %eseguire codice arbitrario potrebbe portare al danneggiamento del processo
+                %browser o addirittura alla compromissione del sistema, si veda questa presentazione
+
+
+
+
+            % \subsection{Esecuzione di script da origini fidate} %%%%%% DOM clobbering e conflitti di namespace
+
+
 
 
 \chapter{Conclusioni}
