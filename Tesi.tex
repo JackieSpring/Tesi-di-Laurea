@@ -47,19 +47,19 @@
 
     % Utility
 \newcommand{\vuln}{\textit{"vuln"}}
-\newcommand{\www}{World Wide Web }
+\newcommand{\www}{World Wide Web}
 \newcommand{\JS}{Javascript}
 \newcommand{\JSON}{JSON}
 \newcommand{\json}{JSON}
     % Estensioni
-\newcommand{\manifest}{\code{manifest.json} }
+\newcommand{\manifest}{\code{manifest.json}}
     % Browser
-\newcommand{\idl}{\code{idl} }
-\newcommand{\ipdl}{\code{ipdl} }
-\newcommand{\AddonManager}{\code{AddonManager} }
-\newcommand{\ExtensionProcessScript}{\code{ExtensionProcessScript} }
-\newcommand{\WebExtensionPolicy}{\code{WebExtensionPolicy} }
-\newcommand{\ContentSecurityPolicy}{\code{ContentSecurityPolicy} }
+\newcommand{\idl}{\code{idl}}
+\newcommand{\ipdl}{\code{ipdl}}
+\newcommand{\AddonManager}{\code{AddonManager}}
+\newcommand{\ExtensionProcessScript}{\code{ExtensionProcessScript}}
+\newcommand{\WebExtensionPolicy}{\code{WebExtensionPolicy}}
+\newcommand{\ContentSecurityPolicy}{\code{ContentSecurityPolicy}}
     % Html
 \newcommand{\tagHTML}[1]{\code{<#1>}}
 \newcommand{\img}{\tagHTML{img}}
@@ -99,59 +99,75 @@
 
 \mainmatter
 \chapter{Introduzione}
-    \Nota{Perché i browser?}\\
-    I Web Browser sono programmi complessi volti a visualizzare contenuti di vario genere
-    provenienti dalle fonti piu disparate, dai file locali alle risorse accessibili nell'
-    internet, dalle immagini ai linguaggi di scripting.\todo{Qui forse dovresti citare le 
-    tecnologie di base dietro ad un browser: HTML, CSS, Javascript, etc.} In un mondo sempre piu connesso, i
-    browser sono diventati de facto applicazioni necessarie nella vita di tutti i giorni e
-    utilizzate da una vastissima comunità di utenti; la loro diffusione unita alla capacità
-    di eseguire codice javascript\todo{direi una mezza frase su cosa e' Javascript} 
-    direttamente sulla macchina dell'utente rende i browser
-    dei bersagli di interesse per il red-team\todo{Direi non solo red team ma anche in generali attaccanti}, 
-    aprendo alla possibilità di compromettere un
-    grande numero di dispositivi.\\
+\label{cap:introduzione}
 
-    \Nota{Perché Firefox?}\\
-    Firefox è un Web Browser che in passato ha avuto un'ampia comunità di utenti, noto per
-    le politiche a tutela privacy e la storica concorrenza con Internet Explorer.\todo{E 
-    Chrome? Non siamo negli anni 2000!}\todo{Immagino che qui devi ancora espandere per 
-    dire che lo hai considerato... e che poi hai scelto di considerare le sue estensioni.}
-
-
-    \Nota{Perché le estensioni?}\\
-    Perché è codice scritto da terze parti a cui il browser da accesso ai contenuti web e
-    ad API privilegiato normalmente non accessibili dal DOM\todo{Mi raccomando cerca di accennare, 
-    anche se brevemente, ad eventuali concetti (anche se per te sono scontanti ma l'obiettivo 
-    di una tesi è far capire a tutti quello che hai studiato.)}, queste caratteristiche mi hanno
-    indotto ad astrarre le estensioni come una sorta di ponte tra la pagina e il sistema,
-    certo le estensioni non sono le uniche componenti del browser a svolgere questo ruolo
-    (basti pensare all'interprete html), ma a differenza delle altre esse sono programmabili
-    ( e programmate ) da sviluppatori esterni al progetto Firefox e potenzialmente
-    ignari sulle misure di sicurezza nello sviluppo web in ambiente browser. 
-    Con questi presupposti ho ipotizzato uno scenario in cui l'attaccante abbia la
-    possibilità di sfruttare una estensione vulnerabile ad attacchi di tipo html injection
-    e sono andato a studiare se e in che modo il browser sia in grado di difendersi
-    da tale scenario.
+    In un mondo sempre piu connesso, la necessità di interagire con risorse di tipo diverso
+    indipendentemente dal sistema operativo sottostante ha portato un genere di applicazione
+    a diventare fondamentale nella vita quotidiana di tutti, i Web Browser. Si tratta di
+    programmi volti a rendere accessibili i servizi del web ad una vasta gamma di utenti
+    e supportare le nuove tecnologie di sviluppo che si affacciano sulla scena con il
+    progredire degli standard. Tra queste, le estensioni browser hanno giocato un ruolo
+    importante nella storia del web, spingendo l'evoluzione del \www{} e delle sue misure
+    di sicurezza ed affermando la loro posizione come parte integrata nell'ecosistema browser 
+    ed integrante dell'esperienza utente.\\
+    Dal punto di vista di un attaccante, i browser sono programmi che permettono di eseguire
+    codice arbitrario direttamente sulla macchina dell'utente.
+    Seppur soggetto a molte restrizioni, la natura cross-platform del codice e la semplicità
+    nel suo ottenimento rendono il browser un bersaglio di grande interesse per un attaccante,
+    aprendo alla possibilità di compromettere un vasto numero di dispositivi.\\
+    In questa partita le estensioni potrebbero giocare un ruolo importante; infatti quello delle estensioni è 
+    codice scritto da terze parti ed eseguito in ambienti che godono di funzionalità e privilegi
+    normalmente non accessibili agli script delle pagine web. Il prezzo pagato dall'estensione
+    arriva sottoforma di misure di sicurezza piu restrittive rispetto alle altre finestre, ma
+    proprio per questo uno sviluppatore ignaro o poco attento alle corrette pratiche di
+    programmazione potrebbe finire per introdurre vulnerabilità in un ambiente più delicato
+    degli altri.\\
+    La mia tesi vuole approfondire le politiche di sicurezza che i browser
+    applicano sull'ambiente d'esecuzione delle estensioni e si pone la domanda se queste da sole
+    siano sufficienti a proteggere il sistema da eventuali attacchi o se debbano essere affiancate
+    da uno sforzo del programmatore ad attuare pratiche di programmazione piu rigorose dal punto
+    di vista della sicurezza. In particolare ho studiato in che modo il browser Firefox
+    protegga le proprie estensioni dai comuni vettori d'attacco delle pagine web e come cerchi
+    di proteggersi in caso di una compromissione riuscita.\\
+    Ritengo che il contributo della mia tesi sia utile per appronfondire il tema degli attacchi
+    nella \textit{extension-land}, ovverro attacchi mirati a sfruttare le tecnologie delle estensioni
+    al fine di compromettere il sistema informatico della vittima, in relazione a minacce
+    provenienti dalle pagine web visitate dall'utente invece che dall'extension-land stessa. 
+    Buona parte della letteratura che ho trovato si è occupata del problema di scalare i
+    privilegi quando l'attaccante si trova gia nella \textit{extension-land}, oppure il problema di mascheramento
+    delle attività di una estensione malevola. Molto poco è stato pubblicato sull'interazione tra
+    il moderno sistema di estensioni e i contenuti provenienti dal web.\\
+    Questo articolo si apre con il \refChapter{cap:concetti-fondamentali} per introdurre ai
+    concetti fondamentali per la comprensione dei contenuti che seguiranno, anche il \refChapter{cap:scenario-e-ambiente}
+    è introduttivo e descrive brevemente l'ambiente di sperimentazione in cui si sono svolti i test
+    riportati durante tutto l'articolo.\\ 
+    I nuovi contenuti incominciano a partire dal \refChapter{cap:infrastruttura-sicurezza-firefox}
+    dove viene discussa l'infrastruttura di sicurezza dietro al browser Firefox, mentre il \refChapter{cap:webextension-dettaglio}
+    va a far luce sui dettagli implementativi del WebExtension Framework e sulla sua integrazione
+    in Gecko (il web-engine alla base di Firefox).\\
+    I due capitoli successivi trattano il lato sperimentale della tesi, iniziando dal \refChapter{cap:analisi-vuln} con la descrizione
+    approfondita dell'estensione fantoccio \vuln{} che ha costituito il principale ambiente 
+    di prova nella mia ricerca, seguendo con il \refChapter{cap:attaccando-vuln} in cui applico
+    le conoscenze acquisite per analizzare sul campo il rischi introdotti da una estensione vulnerabile
+    nel sistema del browser.\\
+    Infine nel \refChapter{cap:conclusioni} tiro le somme dei risultati ottenuti ed esprimo
+    considerazioni riguardo i nuovi dati ed eventuali sviluppi della ricerca.
 
 
 \chapter{Concetti fondamentali}
-\todo{Aggiungi riferimenti alle nuove sezioni \ref{dom} e \ref{webextension-api}}
-    Il capitolo fa un escursus\todo{excursus} su definizioni ed elementi utili per la comprensione dei capitoli che seguiranno,
-    nella \Sezione{I-linguaggi-fondamentali-del-www} si introducono i tre linguaggi fondamentali del web, HTML5,
-    CSS e Javascript al quale dedico la sezione \Sezione{javascript}. CSS verrà soltanto menzionato poiché non ha
-    avuto rilievo nella mia ricerca. Seguono due sezioni di presentazione alle estensioni browser, \Sezione{breve_storia_delle_estensioni}
-<<<<<<< HEAD
-    \todo{e degli attacchi alle estensioni}  è un rapido riassunto sulla storia delle estensioni 
-    mentre \Sezione{anatomia_di_una_web_extension} spiega la struttura di una WebExtension.
-=======
-    \todo{e degli attacchi alle estensioni} browser  è un rapido riassunto sulla storia delle estensioni 
-    mentre \Sezione{sec:anatomia_di_una_web_extension} spiega la struttura di una WebExtension.
->>>>>>> 2b7dcaa (Attaccando vuln, segue)
+\label{cap:concetti-fondamentali}
+    Il capitolo fa un excursus su definizioni ed elementi utili per la comprensione dei capitoli che seguiranno,
+    nella \Sezione{sec:I-linguaggi-fondamentali-del-www} si introducono i tre linguaggi fondamentali del web, HTML5,
+    CSS e Javascript, al quale dedico la sezione \Sezione{sec:javascript}, mentre la \refSection{sec:dom} parlerà del DOM,
+    il modello che rende possibile la comunicazione tra questi linguaggi. CSS verrà soltanto menzionato poiché non ha
+    avuto particolare rilievo nella mia ricerca. Seguono tre sezioni dedicate alle estensioni browser, \Sezione{breve_storia_delle_estensioni}
+    \todo{e degli attacchi alle estensioni} browser  è un rapido riassunto sulla storia delle estensioni
+    mentre \Sezione{sec:anatomia_di_una_web_extension} e \refSection{sec:webextension-api} presentano gli elementi e
+    i concetti fondamentali di programmazione in ambiente WebExtension.
 
 
-    \section{I linguaggi fondamentali del \www}
-    \label{I-linguaggi-fondamentali-del-www}
+    \section{I linguaggi fondamentali del \www{}}
+    \label{sec:I-linguaggi-fondamentali-del-www}
         Un Web Browser è un'applicazione capace di richiedere e visualizzare risorse ottenute dalla rete
         all'interno di una finestra.
         Ad oggi un browser deve necessariamente essere in grado di interpretare questi tre tipi di risorsa 
@@ -160,43 +176,43 @@
         proprie specifiche.
         HTML5 è un linguaggio di markup che descrive la struttura di una pagina web. Gli elementi della 
         pagina sono rappresentati da tag HTML che talvolta modificano i metadati, la visualizzazione e 
-        il comportamento del documento; per esempio il contenuto del tag \code{<script>} può essere interpretato 
-        come codice Javascript ed eseguito al volo dal browser, ma lo stesso tag \code{<script>} può anche importare
+        il comportamento del documento; per esempio il contenuto del tag \script{} può essere interpretato 
+        come codice Javascript ed eseguito al volo dal browser, ma lo stesso tag \script{} può anche importare
         uno script da un URL o file sorgente.
         Il frammento di codice nel Listato~\ref{code:esempio-html} è un esempio di utilizzo del linguaggio HTML5, in queste
         righe viene creato un documento che mostra a schermo la scritta "Archive:" ed include tre altre risorse:
         il tag \code{<link>} include e applica alla pagina il foglio di stile \code{page.css} mentre i due tag
-        \code{<script>} caricano ed eseguono due script Javascript.
+        \script{} caricano ed eseguono due script Javascript.
         In Firefox accanto ad HTML5 è presente un altro linguaggio di markup 
         \todo{due parole in piu su XUL}chiamato XUL usato per la UI del browser stesso.
 
         \begin{lstlisting}[label={code:esempio-html},caption={Un semplice documento html},captionpos=b,language=HTML]
-            <!doctype html>
-            <html>
-                <head>
-                    <meta charset="utf-8" />
-                    <link rel="stylesheet" href="page.css" />
-                    <script src="../shared/archive.js"></script>
-                    <script defer src="sbMain.js"></script>
-                </head>
-                <body>
-                    <p>Archive:</p><br/>
-                    <section id="output"></section>
-                </body>
-            </html>
+        <!doctype html>
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <link rel="stylesheet" href="page.css" />
+                <script src="../shared/archive.js"></script>
+                <script defer src="sbMain.js"></script>
+            </head>
+            <body>
+                <p>Archive:</p><br/>
+                <section id="output"></section>
+            </body>
+        </html>
         \end{lstlisting}
 
     
     \section{Javascript}
-    \label{javascript}
-        \JS è il linguaggio principe della programmazione web lato frontend. Apparso per la
-        prima volta nel 1995 in grembo a Netscape, la sua diffusione ha segnato l'inizio di un \www
+    \label{sec:javascript}
+        \JS{} è il linguaggio principe della programmazione web lato frontend. Apparso per la
+        prima volta nel 1995 in grembo a Netscape, la sua diffusione ha segnato l'inizio di un \www{}
         orientato alle applicazioni; ad oggi è usato in numerosi contesti diversi oltre alle pagine web,
         come server in Nodejs o reti neurali in Tensorflow, parti del browser stesso sono programmate
-        con \JS. 
+        con \JS{}. 
         È un linguaggio ad oggetti debolmente tipizzato che supporta la programmazione ad eventi, 
         funzionale, imperativa e la programmazione ad oggetti basata su prototipi \cite{javascript-introduction}.
-        Rispetto ad altri linguaggi fortemente orientati alla programmazione oggettuale come Java, in \JS
+        Rispetto ad altri linguaggi fortemente orientati alla programmazione oggettuale come Java, in \JS{}
         gli oggetti si comportano come dizionari, il loro insieme di proprietà può venire espanso, ridotto e 
         modificato a runtime. Tra le proprietà di un oggetto alcune sono rilevanti ai fini del linguaggio:
         \begin{itemize}
@@ -210,7 +226,7 @@
                     definisce un \attr{\_\_proto\_\_} a sua volta contenente metodi e attributi della super-super classe 
                     e coì via ricorsivamente. Quando si referenzia la proprietà di un oggetto dapprima la si cerca
                     nell'oggetto stesso e se non viene trovata allora si esplorano ricorsivamente gli oggetti che
-                    formano la catena di \attr{\_\_proto\_\_} che termina con il \attr{\_\_proto\_\_} della classe
+                    formano la catena di \attr{\_\_proto\_\_} fino al \attr{\_\_proto\_\_} della classe
                     base \code{Object}. È importante sottolineare che il sistema della catena di prototipi non è
                     legato al tipo di oggetto che \attr{\_\_proto\_\_} referenzia, ma dalla sola presenza della chiave 
                     \textit{\_\_proto\_\_} nell'oggetto esplorato e poiché si tratta di una proprietà come le altre
@@ -218,7 +234,7 @@
 
             \item \bold{\attr{prototype}} Usando la terminologia della programmazione ad oggetti, il \attr{prototype}
                     di una classe contiene i metodi e gli attributi che verranno ereditati da ogni istanza della classe.
-                    In realtà in \JS le classi non esistono ma al loro posto ci sono i costruttori, funzioni che creano,
+                    In realtà in \JS{} le classi non esistono ma al loro posto ci sono i costruttori, funzioni che creano,
                     inizializzano e ritornano un oggetto che diremo "istanza" del costruttore. Il valore dell'attributo \attr{\_\_proto\_\_}
                     dell'istanza, ovvero l'oggetto prototipale, è un riferimento al \attr{prototype} del costruttore.
             
@@ -230,7 +246,7 @@
         Questo script dichiara un costruttore \code{Letter()} che assegna alle proprie istanze l'attributo \attr{number},
         inoltre tutte le istanze di \code{Letter} ereditano il metodo \method{getNumber}, assegnato al prototipo del costruttore.
         Infine si assegnano alle variabili \code{a},\code{b} e \code{z} tre diverse istanze di \code{Letter}.
-        La Figura \ref{fig:javascript-prototype}\todo{tutte le figure devono avere una caption} illustra gli oggetti discussi e i vari riferimenti ai prototipi, \code{Function.prototype}
+        La Figura \ref{fig:javascript-prototype} illustra gli oggetti discussi e i vari riferimenti ai prototipi, \code{Function.prototype}
         è il prototipo per tutti gli oggetti funzione mentre \code{Object.prototype} è il prototipo base di tutti gli oggetti.
 
         \begin{lstlisting} [
@@ -254,12 +270,12 @@
         \begin{figure}[ht]
             \centering                                                  
             \includegraphics[width=0.5\textwidth]{javascript-constructor.png}
-            \caption{}
+            \caption{Grafico dei riferimenti ai prototipi del \refCode{code:esempio-javascript-prototype}. L'immagine è stata presa dall'articolo "Javascript. The Core" di  Dmitry Soshnikov \cite{javascript-core}}
             \label{fig:javascript-prototype}  
         \end{figure}
 
     \section{DOM}
-    \label{dom}
+    \label{sec:dom}
         Il DOM è la rappresentazione di un documento HTML sottoforma di oggetti \JS \cite{dom-introduction}. 
         Attraverso l'interfaccia offerta dal DOM è possibile modificare programmaticamente gli elementi presenti
         nel documento; tra gli oggetti dichiarati nel DOM \code{document} rappresenta il documento vero e proprio
@@ -305,10 +321,10 @@
                     esecuzione del browser.
         \end{itemize}
         
-        In ogni estensione che faccia uso del WebExtension framework deve essere presente il file \manifest contenente 
-        un oggetto \code{JSON}. Le proprietà dell'oggetto \manifest dichiarano i metadati dell'addon (come nome, 
+        In ogni estensione che faccia uso del WebExtension framework deve essere presente il file \manifest{} contenente 
+        un oggetto \code{JSON}. Le proprietà dell'oggetto \manifest{} dichiarano i metadati dell'addon (come nome, 
         versione e descrizione) e le risorse che verranno eventualmente utilizzate.
-        Il \manifest può contenere riferimenti a file di altro tipo che modificheranno il comportamento e l'aspetto
+        Il \manifest{} può contenere riferimenti a file di altro tipo che modificheranno il comportamento e l'aspetto
         dell'applicazione e si suddividono in:
         \begin{itemize}
             \item \bold{Background}: Sono file che rispondo a eventi del browser, vengono chiamati di background 
@@ -344,23 +360,29 @@
         \end{figure}
 
     \section{Il WebExtension API}
-    \label{webextension-api}
-        Ogni script \JS può fare uso di funzioni e oggetti messi a disposizione dall'ambiente in cui sta venendo
+    \label{sec:webextension-api}
+        Ogni script \JS{} può fare uso di funzioni e oggetti messi a disposizione dall'ambiente in cui sta venendo
         eseguito, poiché ogni script ha diverse necessità, l'accesso a queste risorse può venire consentito o negato
         a seconda di quanto il sistema consideri rischioso esporre l'API ad un uso scorretto. Uno script di background
         deve necessariamente poter agire sugli eventi riguardanti il browser nel suo insieme, ma non si può dire lo
-        stesso di uno script eseguito in una pagina web, interessato soltanto gli eventi in atto sul suo documento;
+        stesso di uno script eseguito in una pagina web, interessato soltanto agli eventi in atto sul suo documento;
         non a caso l'ambiente di esecuzione di background permette di modificare il comportamento del
         browser ma non permette di navigare verso altri URL e specularmente l'ambiente delle pagine web può
         richiedere un sottoinsieme di URI ma non ha alcun accesso agli API del browser.\\
         Il WebExtension framework include nei suoi ambienti l'oggetto \code{browser} (e li suo alias \code{chrome}),
         esso raccoglie un insieme di api utili alle le estensioni e normalmente non accessibili dalle pagine web;
-        quali siano questi API dipende dal tipo di script eseguito e dalla voce \code{"permissions"} del \manifest.
-        Tra gli api troviamo: \attr{runtime} \cite{browser-runtime} fornisce informazioni riguardo l'ambiente di 
-        esecuzione e offre funzioni di messaging, \todo{continua}
+        quali siano questi API dipende dal tipo di script eseguito e dalla voce \code{"permissions"} del \manifest{}.
+        Tra gli api troviamo: \attr{runtime} permette di ottenere informazioni riguardo l'ambiente di 
+        esecuzione e offre funzioni di messaging, \attr{storage} mette a disposizione spazi di archiviazione privati
+        o condivisi con le altre estensioni, \attr{extension} fornisce utilities relative all'estensione; oltre a
+        a questi voglio menzionare alcuni API notevoli come: \attr{webRequest} permette di manipolare le richieste HTTP, 
+        \attr{cookies} garantisce accesso ai cookie gestiti dal browser, \attr{downloads}
+        abilita l'estensione ad interagire con il download manager. \\
+        La lista completa degli API può essere trovata nella documentazione ufficiale mozilla \cite{browser-webextension-api}.
     
 
 \chapter{Scenario e ambiente sperimentale}
+\label{cap:scenario-e-ambiente}
     Il capitolo descrive i presupposti che hanno guidato la sperimentazione e l'ambiente
     informatico in cui si è svolta. La \Sezione{sec:specifiche-e-piattaforma} è una rapida descrizione
     del sistema informatico usato durante il corso delle ricerche e dell'installazione
@@ -1436,9 +1458,12 @@ window.onload = () => {
                 a seguire non dovranno essere considerati dall'interprete; nel caso del payload
                 il commento è necessario per tagliare via i dati inseriti dall'api affinché
                 non provochino errori di compilazione.\\
-                %Seppure l'esempio mostrato sia innocuo, nelle giuste mani la possibilità di
-                %eseguire codice arbitrario potrebbe portare al danneggiamento del processo
-                %browser o addirittura alla compromissione del sistema, si veda questa presentazione
+
+                Seppure l'esempio mostrato sia innocuo, nelle giuste mani la possibilità di
+                eseguire codice arbitrario potrebbe portare al danneggiamento del processo
+                browser o addirittura alla compromissione del sistema, per il lettore interessato
+                ad approfondire l'argomento rimando ad un interessante talk tenuto dal ricercatore
+                Barak Sternberg durante la ventinovesima edizione della DEFCONConference \cite{barak-sternberg-browser-extensions}.
 
 
 
@@ -1446,9 +1471,8 @@ window.onload = () => {
             % \subsection{Esecuzione di script da origini fidate} %%%%%% DOM clobbering e conflitti di namespace
 
 
-
-
 \chapter{Conclusioni}
+\label{cap:conclusioni}
 
 
 \printbibliography
