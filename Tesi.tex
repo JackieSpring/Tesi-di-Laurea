@@ -1544,7 +1544,67 @@ window.onload = () => {
 
 \chapter{Conclusioni}
 \label{cap:conclusioni}
+    La tesi ha indagato sulla progettazione del sistema di sicurezza di Firefox e sulle difese
+    specifiche in ambiente WewbExtension, approfondendo le strutture coinvolte e le loro funzioni.
+    Ha poi messo alla prova tali misure attaccando una estensione intenzionalmente vulnerabile
+    attiva nel browser della vittima, evidenziando come l'ambiente di sicurezza WebExtension richieda
+    del lavoro congiunto con lo sviluppatore di estensioni per mantenere sicura l'installazione
+    Firefox dell'utente.
+
+    Nonostante gli obbiettivi della ricerca siano stati soddisfatti, c'è ancora molto lavoro da fare
+    e le direzioni da prendere, plurime.
+    Gli attacchi presentati in questa tesi erano mirati a bypassare le restrizioni di sicurezza
+    utilizzando elementi definiti nell'HTML5 living standard e nel WebExtension Framework, ma 
+    nessuno di essi ha bersagliato direttamente le strutture o le logiche interne al Web Engine Gecko.
+    Articoli e report su attacchi all'Engine esistono gia, oltre alla piattaforma BugZilla, un forum 
+    gestito dalla Mozilla Foundation per riportare bug e vulnerabilità trovati nel codice di Gecko,
+    ma trovare informazioni sul funzionamento interno specifico di WebExtension risulta difficile.
+    La documentazione ufficiale tratta il sistema di sicurezza ad alto livello, approfondisce le
+    interfacce di programmazione WebExtension e C++, ma non approfondisce quali siano gli oggetti
+    coinvolti nella gestione di tutte queste strutture, né quali informazioni siano accessibili
+    ai processi relativamente alle estensioni e poiché sono i processi a prendere decisioni
+    sull'iniezione di uno script o meno, questa informazione potrebbe diventare utile. Si consideri
+    anche che ogni ogni processo può salvare i dati dell'estensione in uno o più livelli di cache
+    e molto spesso anche le strutture di gestione dell'estensione possiedono una qualche tipologia
+    di cache interna e tutti questi spazi di archiviazione devono rimanere sincronizzati.
     
+    Un'altra tecnologia che questo articolo ha solamente menzionato è la Xray Vision (vedi \refSection{sec:sicurezza-xray-vision}).
+    Essa è fondamentale per la sicurezza del browser poiché c'è un continuo passaggio di dati
+    tra ambienti a differente livello di privilegio. Approfondire il funzionamento di Xray Vision
+    potrebbe aprire a possibilità inaspettate.\\
+    
+    Raccogliendo le informazioni date nei precedenti paragrafi, ecco alcune idee per successivi
+    attacchi mirati al Gecko engine:
+    \begin{itemize}
+        \item \bold{Race condition} sulle chiamate agli api
+        \item \bold{Cache desync} sulle cache degli script, sui risultati delle chiamate agli api e sulle cache di rete.
+        \item \bold{Prototype Pollution}. Trovare punti di prototype pollution. Un punto di inizio 
+                potrebbero essere proprio le chiamate agli api che serializzano sottoforma di stringa
+                la catena di proprietà a cui lo script sta accedendo. Per esempio la ciamata a
+                \code{browser.runtime.getURL("page.html")} viene serializzata in un oggetto fatto piu o meno così:
+                \begin{lstlisting}
+        {
+            . . .
+            path: "runtime.getURL",
+            args: ["page.html"],
+            . . .
+        }
+                \end{lstlisting}
+                Sul lato Parent della comunicazione viene poi fatto il parsing dell'attributo \code{path}
+                per cercare l'implementazione reale della funzione. Errori nel sistema di parsing potrebbero
+                permettere di accedere a proprietà riservate dell'API.
+
+        \item \bold{Bypass di Xray}. Xray è una misura pensata proprio per ostacolare tentativi di
+                prototype pollution e type juggling durante le interazioni tra i contesti, un bypass di
+                questa restrizione permetterebbe di promuovere oggetti \JS{} a livelli di privilegio
+                maggiori ed accesso ad api critici.
+    \end{itemize}
+
+    Oltre a Gecko, è necessaria una analisi delle estensioni gia esistenti alla ricerca di vulnerabilità,
+    prime tra tutte le estensioni built-in Firefox che consentirebbero un exploit diffuso su tutti i
+    dispositivi ospitanti il browser.
+    Infine si dovrebbe estendere la ricerca anche agli altri browser.
+    \todo{continua}
 
 \printbibliography
 
