@@ -284,6 +284,21 @@
         di tutti gli script eseguiti sulla pagina, ovvero un oggetto che ospita le variabili tra le
         sue proprietà, oltre agli oggetti built-in.
 
+    \section{Browsing Context}
+    \label{sec:browsing-context}
+        In Firefox il Browsing Context è rappresenta un ambiente di visualizzazione di un documento,
+        per esempio ogni tab del browser è un Browsing Context, ma anche un \iframe{} è un Browsing Context
+        figlio del Browsing Context della finestra.
+        Oltre a ciò, il Browsing Context si occupa di molte funzionalità relative al documento che sta
+        "visualizzando" (ho usato impropriamente il verbo visualizzare poiché non è direttamente responsabile
+        della parte grafica), come la gestione delle sessioni attive, la gestione della cronologia, la navigazione
+        e il loop degli eventi lanciati sul suo documento. La comunicazione tra contesti è molto limitata, un oggetto \JS{}
+        residente in un Browsing Context può accedere solo ad oggetti residenti in altri contesti con cui condivide
+        l'origine, l'interazione tra oggetti provenienti da diverse origini viene impedita
+        ( come indicato dalla Same-Origin Policy di cui si discuterà nella \refSection{sec:sicurezza-script-same-origin-policy} ).
+        La comunicazione tra contesti ad origine diversa resta comunque possibile attraverso sistemi di
+        serializzazione e trasmissione dati, forniti sempre dal Browsing Context.
+
     \section{Breve storia delle estensioni}
     \label{breve_storia_delle_estensioni}
     \todo{attacchi agli applet}
@@ -677,80 +692,7 @@
             visione Xray può venire attenuata programmaticamente accedendo alla prorpietà \code{.wrappedJSObject},
             ma a questo punto non si avrebbero piu garanzie di sicurezza su di esso, nè sui "figli".
 
-
-\chapter{WebExtension nel dettaglio}
-\label{cap:webextension-dettaglio}
-    Il codice del WebExtension framework può essere trovato nella cartella \file{toolkit/} \file{components/extensions/}, è composto
-    da molti file che suddividerò in tre categorie: core, integrativi ed implementativi.\\
-    I file di \bold{core} definiscono logica e strutture in ambiente nativo che verranno indirettamente utilizzate da
-    tutti gli altri file, eseguono a livello di processo e svolgono ruoli di gestione della comunicazione tra
-    processi e avviamento degli altri script.\\
-    I file detti \bold{integrativi} definiscono la logica del framework, sono perlopiù moduli \JS
-    e lavorano a stretto contatto con i servizi e le utilities fornite da Gecko, come contesti di esecuzione \JS, sandbox, storage
-    e cache. Il loro compito è di gestire i dati delle estensioni nel Content Process ospite e sincronizzare le strutture
-    di rappresentazione dell'estensione collocate sugli altri processi; per queste ragioni troviamo classi che
-    coordinano l'invio e la ricezione di chiamate a procedure remote, classi per il setup e l'avviamento
-    del contesto \JS in cui verrà eseguita l'estensione, parsing dei manifesti e degli schemi implementativi
-    che descrivono gli api.\\
-    Infine gli script \bold{implementativi} definiscono gli oggetti che l'api espone, ovvero quelli ospitati
-    dall'oggetto \code{browser} menzionato nella \Sezione{webextension-api}. Curiosamente le definizioni di tali
-    oggetti non sono note al framework a tempo di compilazione, ma vengono introdotte a runtime dal framework stesso attraverso
-    schemi \json che contengono metadati sugli api e referenze ai rispettivi script \cite{webextension-api-development}, infatti i file cosiddetti implementativi
-    sono schemi \json (indicizzati da \file{ext-toolkit.json} e collocati nella sottocartella \file{schemas/}) e script \JS
-    che contengono il codice degli api esposti (residenti nelle sottocartelle \file{parent/} e \file{child/}).
-    In questo capitolo illustrerò nel dettaglio i processi di gestione delle estensioni a runtime. \todo{continua, illustra il capitolo}
-
-    \section{XPCOM}
-        XPCOM Framework è un ambiente di sviluppo multi piattaforma che astrae elementi del sistema operativo,
-        come la gestione della memoria, passing di messaggi e memoria condivisa, e fornisce interfacce di 
-        comunicazione tra linguaggi programmazione; è il collante fondamentale tra i processi e le componenti di
-        Gecko. Tra le feature di XPCOM il sottosistema XPConnect offre un linguaggio per definire
-        interfacce di programmazione chiamato \idl ( Interface Definition Language ) e un linguaggio per definire protocolli
-        di comunicazione inter-processo ed RPC chiamato \ipdl (Inte-process comunication Protocol Definition Language);
-        il file di definizione, sia esso \idl o \ipdl, viene compilato in rappresentazioni equivalenti nei linguaggi
-        di destinazione mentre la logica è implementata dal programmatore usando uno dei linguaggi specificati,
-        al momento XPConnect supporta C++, Rust, Python, Javascript e pochi altri, tutti impiegati nello sviluppo
-        di Gecko.\\
-        Voglio aprire una parentesi di approfondimento su \ipdl per fare chiarezza sul concetto di \textit{Attore}, 
-        menzionato nelle sezioni successive. A differenza delle interfacce un protocollo ha bisogno di due entità,
-        dette Attori, che utilizzino il protocollo per un fine di comunicazione, \ipdl si riferisce ad essi come 
-        Parent e Child. Il Parent viene collocato sul processo che rimarrà attivo più a lungo, idealmente il genitore, 
-        mentre il Child è l'entità corrispondente attiva su un altro processo, idelamente figlio del primo.
-        Durante la compilazione, XPConnect genera sia le strutture di rappresentazione dei protocolli che le
-        interfacce di programmazione per gli attori, implementate allo stesso modo delle interfacce \idl.
-
-
-
-    \section{ Loading }
-        La vita di una estensione è legata a due classi: \AddonManager ed \ExtensionProcessScript,
-        la prima è una classe singleton collocata nel Parent Process e responsabile della archiviazione
-        degli Addon e delle estensioni ( prima di supportare lo standard WebExtension, Firefox veniva espanso
-        usando gli Addon, \AddonManager è stata modificata successivamente per adattarsi al nuovo standard; quella degli
-        Addon è una storia affascinante che si intreccia con l'evoluzione del sistema di sicurezza del browser ).
-        Quando una estensione viene installata è \AddonManager a prendersi carico del collezionamento dei nuovi
-        script nel database e di avviarli per la prima volta mentre il browser è in esecuzione; ma se \AddonManager
-        è situata nella memoria del Parent Process come può iniettare uno script su altri processi isolati?
-        \ExtensionProcessScript è un'altra classe singleton attiva su ogni Content Process, è incaricata di
-        ottenere i dati e il codice delle estensioni e farne il setup preparandoli per il successivo utilizzo;
-        inoltre è indirettamente responsabile dell'avvio all'interno del processo. Per rappresentare l'estensione
-        \ExtensionProcessScript istanzia un oggetto \WebExtensionPolicy che ha la duplice funzione di astrarre
-        l'estensione stessa e le informazioni di sicurezza associate tra cui l'entità di sicurezza,
-        la Content Security Policy, l'Origin e altre proprietà interne; tutti gli oggetti menzionati sono
-        descritti da interfacce \idl ed implementati in codice nativo, eccetto \code{mozIExtensionProcessScript.idl}
-        scritto direttamente in Javascript.
-         
-    \section{}
-
-
-    \section{L'estensione a runtime}
-        //
     
-    \section{L'api a runtime}
-    \label{sec:webextension-api-rpc}
-        \todo{Come viene creato l'ambiente di esecuzione dell'api?}
-        \todo{come viene invocata una funzione?}
-        \todo{come si ottiene il valore di ritorno?}
-
     \section{Le difese delle estensioni}
         Nel \Capitolo{cap:infrastruttura-sicurezza-firefox} ho discusso il sistema di sicurezza generale
         degli script in Firefox, in questa sezione si mostreranno le difese specifiche dell'ambiente
@@ -758,69 +700,198 @@
         hanno cercato di ridurre al minimo le feature accessibili alle estensioni facendo una
         distinzione netta fra gli script che interagiscono con il browser e gli script che interagiscono
         con le pagine.
-
-        \subsection{I content script}
-        \label{sec:difese-content-script}
-            In Manifest V2 i content script non hanno Content Security Policy, mentre in Manifest V3 sono soggetti
-            alla CSP di default delle estensioni \refSection{sec:difese-background-sidebar}.
-            A differenza dei background script il loro codice è ospitato in ogni
-            \todo{in \refChapter{cap:infrastruttura-sicurezza-firefox} aggiungere sezione su Window context e browsing context }Window Context 
-            che veda la propria origine tra le origini specificate nella voce \code{"matches"} del \manifest dell'estensione.
-            La figura \ref{fig:vuln-manifest-contentscript} è un esempio di quanto detto,
-            la voce \code{"content\_scripts"} è una lista di configurazioni dei content script introdotti dall'estensione,
-            l'esempio dichiara un content script \file{content/csMain.js} che deve eseguirsi su tutte le
-            origini che rispettano le espressioni regolari della voce \code{"matches"}.
-
-            \begin{figure}[ht]
-                \centering
-                \includegraphics[width=0.85\textwidth]{vuln-manifest-content-script.png}
-                \caption{Sezione content\_scripts nel \manifest di \vuln}
-                \label{fig:vuln-manifest-contentscript}
-            \end{figure}
-
-            I content script possono accedere ad un insieme ristretto di WebExtension API, perlopiù event listener,
-            servizi di messaging, conversione dei locales e storage.
-
-        \subsection{I background script e la sidebar}
-        \label{sec:difese-background-sidebar}
-            Sugli script di background e le UI viene applicata una CSP di default modificabile soltanto dal
-            \manifest dell'estensione, i dettagli della policy differiscono tra Manifest V2 e V3. Nella
-            mia ricerca ho trattato solo la versione 2 del manifest pertanto tratterò solo le specifiche
-            di quest'ultima.
-            La CSP di background è piu severa rispetto ai content script volta a restringere le origini
-            da cui caricare codice \JS e pratiche di programmazione potenzialmente insicure, la specifica
-            standard del manifest V2 è:
-            \begin{lstlisting}
-                "script-src 'self'; object-src 'self';"
-            \end{lstlisting}
-            Nel pratico la riga precedente si traduce in quattro restrizioni:
-            \begin{itemize}
-                \item Risorse \code{<script>} e \code{<object>} possono essere caricate solo da origini
-                        locali all'estensione (ovvero file collocati nella stessa cartella). Tutte le
-                        richieste che cercheranno di includere codice nella pagina proveniente da origini
-                        considerate insicure verranno bloccate silenziosamente.
-
-                \item Non è concesso evaluare stringhe come codice \JS. L'uso di funzioni come
-                        \code{eval()}, \code{setTimeout()}, \code{setInterval()} e \code{Function()}
-                        per eseguire il contenuto di stringhe come codice \JS viene bloccato silenziosamente.
+    
+            \subsection{I content script}
+            \label{sec:difese-content-script}
+                In Manifest V2 i content script non hanno Content Security Policy, mentre in Manifest V3 sono soggetti
+                alla CSP di default delle estensioni \refSection{sec:difese-background-sidebar}.
+                A differenza dei background script il loro codice è ospitato in ogni Browsing Context 
+                che veda la propria origine tra le origini specificate nella voce \code{"matches"} del \manifest dell'estensione.
+                La figura \ref{fig:vuln-manifest-contentscript} è un esempio di quanto detto,
+                la voce \code{"content\_scripts"} è una lista di configurazioni dei content script introdotti dall'estensione,
+                l'esempio dichiara un content script \file{content/csMain.js} che deve eseguirsi su tutte le
+                origini che rispettano le espressioni regolari della voce \code{"matches"}.
+    
+                \begin{figure}[ht]
+                    \centering
+                    \includegraphics[width=0.85\textwidth]{vuln-manifest-content-script.png}
+                    \caption{Sezione content\_scripts nel \manifest di \vuln}
+                    \label{fig:vuln-manifest-contentscript}
+                \end{figure}
+    
+                I content script possono accedere ad un insieme ristretto di WebExtension API, perlopiù event listener,
+                servizi di messaging, conversione dei locales e storage.
+    
+            \subsection{I background script e la sidebar}
+            \label{sec:difese-background-sidebar}
+                Sugli script di background e le UI viene applicata una CSP di default modificabile soltanto dal
+                \manifest dell'estensione, i dettagli della policy differiscono tra Manifest V2 e V3. Nella
+                mia ricerca ho trattato solo la versione 2 del manifest pertanto tratterò solo le specifiche
+                di quest'ultima.
+                La CSP di background è piu severa rispetto ai content script volta a restringere le origini
+                da cui caricare codice \JS e pratiche di programmazione potenzialmente insicure, la specifica
+                standard del manifest V2 è:
+                \begin{lstlisting}
+                    "script-src 'self'; object-src 'self';"
+                \end{lstlisting}
+                Nel pratico la riga precedente si traduce in quattro restrizioni:
+                \begin{itemize}
+                    \item Risorse \code{<script>} e \code{<object>} possono essere caricate solo da origini
+                            locali all'estensione (ovvero file collocati nella stessa cartella). Tutte le
+                            richieste che cercheranno di includere codice nella pagina proveniente da origini
+                            considerate insicure verranno bloccate silenziosamente.
+    
+                    \item Non è concesso evaluare stringhe come codice \JS. L'uso di funzioni come
+                            \code{eval()}, \code{setTimeout()}, \code{setInterval()} e \code{Function()}
+                            per eseguire il contenuto di stringhe come codice \JS viene bloccato silenziosamente.
+                    
+                    \item Non è consentito eseguire codice \JS inline. Con codice inline si intende codice
+                            \JS hard-coded in elementi html, come quello contenuto nel tag \code{<script>}
+                            quando non viene utilizzato per includere file script. Un esempio è l'abuso degli
+                            event listener dichiarabili direttamente sui tag html per eseguire \JS malevolo:\\
+                            \code{<img src="invalid" onerror=fetch("http://attacker/?" + document.cookie) >}        
+    
+                    \item \todo{due parole su webassembly} Non è consentito eseguire codice WebAssembly.
                 
-                \item Non è consentito eseguire codice \JS inline. Con codice inline si intende codice
-                        \JS hard-coded in elementi html, come quello contenuto nel tag \code{<script>}
-                        quando non viene utilizzato per includere file script. Un esempio è l'abuso degli
-                        event listener dichiarabili direttamente sui tag html per eseguire \JS malevolo:\\
-                        \code{<img src="invalid" onerror=fetch("http://attacker/?" + document.cookie) >}        
+                \end{itemize}
+                Questa politica è applicata su ogni estensione che non abbia esplicitamente modificato la voce
+                \code{"content\_security\_policy"} del suo \manifest e non è modificabile programmaticamente.
+                
+            \todo{forse questa sezione dovrebbe stare in \refChapter{cap:webextension-dettaglio} }\subsection{API}
+            \label{sec:difese-api-sandbox}
+                L'implementazione del WebExtension API è collocata nel Parent Process all'interno
+                di una Sandbox che esegue come Entità di Sistema \refSection{sec:security-principal} ed ha
+                accesso a molti servizi del browser (vedi \file{ExtensionCommon.sys.mjs} \method{\_createExtGlobal}).
+    
 
-                \item \todo{due parole su webassembly} Non è consentito eseguire codice WebAssembly.
-            
-            \end{itemize}
-            Questa politica è applicata su ogni estensione che non abbia esplicitamente modificato la voce
-            \code{"content\_security\_policy"} del suo \manifest e non è modificabile programmaticamente.
-            
-        \todo{forse questa sezione dovrebbe stare in \refChapter{cap:webextension-dettaglio} }\subsection{API}
-        \label{sec:difese-api-sandbox}
-            L'implementazione del WebExtension API è collocata nel Parent Process all'interno
-            di una Sandbox che esegue come Entità di Sistema \refSection{sec:security-principal} ed ha
-            accesso a molti servizi del browser (vedi \file{ExtensionCommon.sys.mjs} \method{\_createExtGlobal}).
+\chapter{WebExtension nel dettaglio}
+\label{cap:webextension-dettaglio}
+
+    Il capitolo riassume la logica e le strutture che danno vita al WebExtension Framework all'interno
+    del runtime Gecko. I concetti che verranno introdotti permeano i capitoli precedenti e daranno
+    una chiave di lettura più dettagliata dei capitoli che seguiranno, anche se raramente menzionati.\\
+    Con questi presupposti il capitolo inizia dal discutere uno dei piu importanti componenti di Gecko,
+    XPCOM, nella \refSection{sec:xpcom}.
+    Dopo XPCOM, le tre sezioni successive trattano dettagliatamente del WebExtension Framework.
+    \refSection{sec:webextension-files} offre una panoramica dei file coinvolti, mentre \refSection{sec:webextension-extension-runtime}
+    e \refSection{sec:webextension-api-rpc} approfondiscono i sistemi di gestione delle estensioni e
+    degli API a runtime.
+
+    \section{XPCOM}
+    \label{sec:xpcom}
+        XPCOM Framework è un ambiente di sviluppo multi piattaforma che astrae elementi del sistema operativo,
+        come la gestione della memoria, passing di messaggi e memoria condivisa, e fornisce interfacce di 
+        comunicazione tra linguaggi programmazione; è il collante fondamentale tra i processi e le componenti di
+        Gecko. Tra le feature di XPCOM il sottosistema XPConnect offre un linguaggio per definire
+        interfacce di programmazione chiamato \idl{} ( Interface Definition Language ) e un linguaggio per definire protocolli
+        di comunicazione inter-processo ed RPC chiamato \ipdl{} (Inte-process comunication Protocol Definition Language);
+        il file di definizione, sia esso \idl{} o \ipdl{}, viene compilato in rappresentazioni equivalenti nei linguaggi
+        di destinazione mentre la logica è implementata dal programmatore usando uno dei linguaggi specificati,
+        al momento XPConnect supporta C++, Rust, Python, Javascript e pochi altri, tutti impiegati nello sviluppo
+        di Gecko.\\
+        Voglio aprire una parentesi di approfondimento su \ipdl{} per fare chiarezza sul concetto di \textit{Attore}, 
+        menzionato nelle sezioni successive. A differenza delle interfacce un protocollo ha bisogno di due entità,
+        dette Attori, che utilizzino il protocollo a fine di comunicativo, \ipdl{} si riferisce ad essi come 
+        Parent e Child. Il Parent viene collocato sul processo che rimarrà attivo più a lungo, idealmente il genitore, 
+        mentre il Child è l'entità corrispondente attiva su un altro processo, idelamente figlio del primo.
+        Durante la compilazione, XPConnect genera sia le strutture di rappresentazione dei protocolli che le
+        interfacce di programmazione per gli attori, implementate allo stesso modo delle interfacce \idl{}.
+
+
+    \section{I file di WebExtension}
+    \label{sec:webextension-files}
+        Il codice del WebExtension framework può essere trovato nella cartella \file{toolkit/} \file{components/extensions/}, è composto
+        da molti file che suddividerò in tre categorie: core, integrativi ed implementativi.\\
+        \subsubsection{Core}
+        I file di \bold{core} definiscono logica e strutture in ambiente nativo che verranno indirettamente utilizzate da
+        tutti gli altri file, eseguono a livello di processo e svolgono ruoli di gestione della comunicazione tra
+        processi e avviamento degli altri script.\\
+        La classe forse piu importante tra i file di core è \file{ExtensionPolicyService.cpp} che svolge molti ruoli
+        vitali per i Content Process, come l'avviamento dell'ambiente \JS{} del WebExtension Framework sul processo,
+        check di sicurezza in ambiente nativo e iniezione degli script nella memoria del processo.\\
+        \subsubsection{Integrativi}
+        I file detti \bold{integrativi} definiscono la logica del framework, sono perlopiù moduli \JS{}
+        e lavorano a stretto contatto con i servizi e le utilities fornite da Gecko, come contesti di esecuzione \JS{}, sandbox, storage
+        e cache. Il loro compito è di gestire i dati delle estensioni nel Content Process ospite e sincronizzare le strutture
+        di rappresentazione dell'estensione collocate sugli altri processi; per queste ragioni troviamo classi che
+        coordinano l'invio e la ricezione di chiamate a procedure remote, classi per il setup e l'avviamento
+        del contesto \JS{} in cui verrà eseguita l'estensione, parsing dei manifesti e degli schemi implementativi
+        che descrivono gli api. \\
+        Tra gli script integrativi importanti voglio menzionare \file{ExtensionCommon.sys.mjs}
+        che definisce le interfacce e classi base utilizzate dalle strutture descritte nelle sezioni seguenti.\\
+        \subsubsection{Implementativi}
+        Infine gli script \bold{implementativi} definiscono gli oggetti che l'api espone, ovvero quelli ospitati
+        dall'oggetto \code{browser} menzionato nella \Sezione{sec:webextension-api}. Curiosamente le definizioni di tali
+        oggetti non sono note al framework a tempo di compilazione, ma vengono introdotte a runtime dal framework stesso attraverso
+        schemi \json{} che contengono metadati sugli api e referenze ai rispettivi script \cite{webextension-api-development}, infatti i file cosiddetti implementativi
+        sono schemi \json{} (indicizzati da \file{ext-toolkit.json} e collocati nella sottocartella \file{schemas/}) e script \JS{}
+        che contengono il codice degli api esposti (residenti nelle sottocartelle \file{parent/} e \file{child/}).
+
+    \section{L'estensione a runtime}
+    \label{sec:webextension-extension-runtime}
+        Seppure l'estensione appaia come un'unica entità per l'utente finale e come un insieme
+        di script per lo sviluppatore, l'engine Gecko ne ha una rappresentazione diversa per
+        ogni Browsing Context su cui gli script dell'estensione devono essere attivi.
+        Due sono le principali rappresentazioni di una estensione: la classe \code{Extension}
+        rappresenta l'estensione sul Parent Process, mentre la classe \code{BaseExtensionContent}
+        la rappresenta sui Content Process (compreso l'Extension Process). I tipi di dato
+        trasportati sono piu o meno gli stessi e includono:
+        \begin{itemize}
+            \item \bold{WebExtensionPolicy}. È un oggetto che racchiude le informazioni di sicurezza
+                    dell'estensione, come Entità di Sicurezza, Content Security Policy e permessi del \manifest{}.
+                    Esso è descritto dal file \file{WebExtensionPolicy.webidl} (una variante di file \idl{})
+                    ed implementato in codice nativo C++, così come lo sono anche le Entità di Sicurezza
+                    e le Content Security Policy. Il lettore interessato potrà leggere le loro definizioni
+                    in \file{caps/nsIPrincipal.idl} e \file{dom/interfaces/security/nslIContentSecurityPolicy.idl}.
+
+            \item \bold{gli script}. Ovvero quali script formano l'estensione, è una lista che puo
+                    variare a seconda del contesto d'esecuzione. Il Parent Process conosce tutti gli
+                    script dell'estensione, sia quelli statici, sia quelli definiti dinamecamente a
+                    runtime. Extension Process ha visione dei content-script statici e della lista
+                    di script di background, anch'essa espandibile a runtime. Invece i WebContent
+                    Process hanno visione soltanto dell'insieme dei content-script (statici e di runtime).
+
+            \item \bold{API Manager}. Il gestore dei WebExtension API assegnato a questo contesto
+                    d'esecuzione. Approfondisco gli API Manager nella \refSection{sec:webextension-api-rpc},
+                    per ora basti sapere che ogni contesto di esecuzione ha il proprio API Manager.
+
+            \item \bold{Metadati}. Nome dell'estensione, uuid, id, stato corrente, URI di base e altri dati
+                    che possano tornare utili alle strutture di gestione.
+        \end{itemize}
+    
+    \section{L'api a runtime}
+    \label{sec:webextension-api-rpc}
+
+        Gli script serviti dal WebExtension API sono molteplici e dislocati in piu processi,
+        il browser deve garantire che le chiamate agli API rimangano coerenti con lo stato interno
+        del browser. \\
+        Salvo diversamente specificato, il codice d'implementazione degli API viene
+        eseguito nel Parent Process, all'interno di una Sandbox registrata come Entità di Sistema
+        e con accesso a molti dei servizi browser. In realtà possono esistere anche implementazioni
+        cosidette "locali", cioe risiedenti sullo stesso processo in cui sta venendo eseguito lo
+        script, usate per ospitare oggetti che non richiedono accesso a dati di importanza critica
+        ma la grande maggioranza degli API sono ospitati da una classe singleton nel Parent Process.\\
+
+        La comunicazione tra l'estensione e il Parent Process è gestita da un APIManager che viene
+        istanziato per ogni contesto d'esecuzione. Esso raccoglie le chiamate alle funzioni api,
+        controlla i permessi, invia una RPC al parent e ritorna la risposta all'estensione invocante.
+        In realtà l'APIManager non è un \textit{Attore} \ipdl{} (vedi \refSection{sec:xpcom}) e non si
+        occupa direttamente della comunicazione IPC ma soltanto della logica applicativa; l'unica
+        eccezione è la singleton \code{ParentAPIManager} del Parent, incaricata non solo degli API, ma
+        anche del corretto recapito dei risultati ai vari Browsing Context.
+        Gli API manager devono anche controllare i permessi di esecuzione per verificare che l'estensione
+        possa o meno chiamare la funzione api, questo controllo viene fatto sia sul Child che sul Parent
+        tenendo conto dei permessi dichiarati nel \manifest{} e dei permessi propri del contesto d'esecuzione.
+        Il lettore interessato troverà l'implementazione di queste strutture nel file \file{ExtensionChild.sys.mjs},
+        eseguito su ogni Content Process, ed \file{ExtensionParent.sys.mjs}, che implementa le strutture
+        relative al Prent Process. Il lettore non si faccia ingannare dal file \file{ExtensionContent.sys.mjs} 
+        il quale sì, si occupa di strutture sul Content Process, ma solo quelle relative ai content-script.
+
+        Il lettore curioso poterbbe chiedersi quale sia la natura degli elementi dell'oggetto
+        \code{browser} discusso nella \refSection{sec:webextension-api} a cui le estensioni accedono.
+        Ebbene si tratta a loro volta di oggetti proxy situati nel Child process, frapposti tra lo
+        script e l'APIManager assegnato all'estensione, che espongono metodi omonimi agli api, ma invocanti
+        l'APIManager affinché effettui la chiamata RPC.
 
 
 \chapter{Analisi di \vuln}
@@ -1181,7 +1252,7 @@ window.onload = () => {
         
         \subsection{Inclusione di \iframe}
         \label{sec:attaccando-vuln-bypass-iframe}
-            Un tag \iframe rappresenta un \todo{Aggiungere Browsing e Window context al capitolo sicurezza}Browsing Context
+            Un tag \iframe rappresenta un Browsing Context
             innestato nella pagina che lo ospita, il suo contenuto dipende dall'attributo \code{src} che specifica
             l'URI sorgente della sotto-finestra. Trattandosi di un Browsing Context indipendente si deduce che
             il compartimento dell'\iframe sia separato da quello del genitore e innestando una pagina controllata
@@ -1473,7 +1544,7 @@ window.onload = () => {
 
 \chapter{Conclusioni}
 \label{cap:conclusioni}
-
+    
 
 \printbibliography
 
