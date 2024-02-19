@@ -4,7 +4,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{todonotes}
-\usepackage[backend=biber]{biblatex}
+\usepackage[backend=biber,texencoding=utf8,bibencoding=utf8]{biblatex}
 
 
 \graphicspath{{img/}}
@@ -476,15 +476,15 @@
                     sviluppo e introducendo codice vulnerabile nel programma.
         \end{enumerate}
 
-        La figura \ref{fig:sidebar-screenshot} mostra la sidebar di \vuln aperta sulla sinistra della pagina
+        La figura \ref{fig:sidebar-screenshot} mostra la sidebar di \vuln{} aperta sulla sinistra della pagina
         web controllata dall'attaccante, il riquadro scuro in basso mostra invece il codice html del documento.
         La sidebar sta visualizzando dieci coppie chiave-valore che l'estensione ha estrapolato dal codice
-        del sito malevolo, nel \Capitolo{attaccando-vuln}\todo{fix} si approfondirà in che modo l'attaccante sfrutta i
+        del sito malevolo, nel \Capitolo{cap:attaccando-vuln} si approfondirà in che modo l'attaccante sfrutta i
         valori di queste coppie per iniettare codice html.
 
         \begin{figure}[ht]
             \centering                                                  
-            \includegraphics[width=0.5\textwidth]{sidebar-screenshot.png}
+            \includegraphics[width=0.8\textwidth]{sidebar-screenshot.png}
             \caption{Visualizzazione della sidebar di \vuln accanto al sito malevolo}
             \label{fig:sidebar-screenshot}                             
         \end{figure}
@@ -494,16 +494,21 @@
 \label{cap:infrastruttura-sicurezza-firefox}
     Ogni sito internet moderno ha in qualche modo il bisogno di interagire con la rete,
     con uno storage locale, con il file system e con dispositivi audio e video, tutte
-    risorse gestite dal sistema operativo, pertanto ogni sito deve poter interagire con
-    il sistema operativo della macchina client ma dare questo livello di accesso a codice
-    insicuro significa esporre il sistema ad alti rischi di sicurezza per queste ragioni
+    risorse gestite dal sistema operativo. Pertanto ogni sito deve poter interagire con
+    il sistema operativo della macchina client; dare questo livello di accesso a codice
+    insicuro significa esporre il sistema ad alti rischi di sicurezza. Per queste ragioni
     il browser deve esporre API che rendano possibili le operazioni richieste dal sito
     senza però compromettere la macchina host.\\
     Firefox non è direttamente responsabile della sicurezza del sistema, questo aspetto è
     invece gestito da rendering engine Gecko di cui Firefox è il front-end.
-    Gecko applica quanto detto separando il codice eseguito in compartimenti
-    logici, isolati in processi distinti, realizzando layer di separazione a livello
-    applicativo e a livello fisico di sistema operativo.
+    Gecko applica quanto detto separando il codice ritenuto insicuro dal codice "sicuro",
+    isolandolo in processi separati e comunicanti e racchiudendo gli script in esecuzione in compartimenti.
+    Così facendo i vari script sono separati sia a
+    livello applicativo, che a livello di processo.
+    Per queste ragioni il capitolo è separato in due sezioni, la \refSection{sec:modello-processi}
+    spiega il modello di separazione dei processi mentre la \refSection{sec:sicurezza-script}
+    disseziona il modello di sicurezza all'interno del singolo processo ospitante più
+    compartimenti.
 
     \section{Modello processi}
     \label{sec:modello-processi}
@@ -511,15 +516,15 @@
         sono eseguiti in diversi processi per garantire solidità nel caso di fallimenti o 
         compromissioni esterne; si dividono in tre categorie:
         \begin{itemize}
-            \item \textbf{Parent Process} è il processo principe nonché padre di tutti gli altri,
+            \item \textbf{Parent Process}: è il processo principe nonché padre di tutti gli altri,
                 è incaricato di coordinare i processi figlio e gestire la comunicazione tra di essi.
                 Visualizza pagine ad alti privilegi come \code{about:preferences} e \code{about:config},
-                pertanto ospita un ambiente di esecusione ristretto.
+                pertanto ospita un ambiente di esecuzione ristretto.
 
-            \item \textbf{Helper Processes} sono processi che ospitano servizi, tra essi vi sono servizi
+            \item \textbf{Helper Processes}: sono processi che ospitano servizi, tra essi vi sono servizi
                 di interazione con il file system, con la rete, con le immagini e altri ancora.
 
-            \item \textbf{Content Processes} sono processi usati per renderizzare contenuto web, insieme
+            \item \textbf{Content Processes}: sono processi usati per renderizzare contenuto web, insieme
                 al Parent sono gli unici a poter eseguire codice Javascript. Vengono suddivisi in 
                 "remote-type", proprietà che specificano i privilegi di accesso agli API.
 
@@ -543,29 +548,29 @@
     \section{Sicurezza livello script}
     \label{sec:sicurezza-script}
         Il codice Javascript eseguito da Gecko non proviene solo da fonti terze come pagine web o estensioni,
-        l'interfaccia grafica del browser (Firefox) e la logica sono controllati da moduli javascript ad
-        alti privilegi di accesso pertanto gli script web non possono eseguire nello stesso ambiente del
-        javascript di sistema. Il modello processi in se potrebbe sembrare una soluzione adeguata, ma se
-        script web e di sistema dovessero eseguire nello stesso processo si creerebbe un conflitto, inoltre
-        il browser deve poter accedere a oggetti del web content; la separazione in processi è troppo 
-        restrittiva per questi utilizzi; inoltre Javascript è un linguaggio a tipizzazione debole, funzionale
-        e di cui le strutture di supporto alla programmazione ad oggetti sono modificabili, un esempio dei
-        rischi introdotti da questa dinamicità sono gli attacchi di prototype pollution\todo{parlane prima, dai citazione}. Il modello di
-        separazione dei processi non è sufficiente a gestire proprietà di linguaggio.
+        l'interfaccia grafica del browser e la logica sono controllati da moduli javascript ad
+        alti privilegi di accesso. Pertanto gli script web non possono eseguire nello stesso ambiente del
+        javascript di sistema. Isolare ogni contesto \JS{} in un processo separato, applicando alla lettera
+        il modello processi, potrebbe sembrare sufficiente, ma renderebbe la comunicazione più complessa
+        e sarebbero comunque necessari script per gestire le attività nel processo stesso.
+        Per queste e altre ragioni, si è dovuto creare un sistema che coordinasse più script in esecuzione
+        nello stesso processo e definire delle politiche di interazione tra essi. 
+        Questa sezione descrive tali politiche.
 
         \subsection{Security Policy}
         \label{sec:sicurezza-script-security-policy}
-            Una Security Policy è una definizione di che cosa significhi "essere sicuro" per un sistema,
-            nel caso di Gecko definisce il livello di accesso garantito verso un oggetto da parte di un
+            Una Security Policy è una definizione di che cosa significhi "essere sicuro" per un sistema.
+            Nel caso di Gecko definisce il livello di accesso garantito verso un oggetto da parte di un
             altro oggetto in relazione a due rapporti: Origine e Privilegi.
             Gli oggetti dotati di stessa "origine" sono detti \code{"same-origin"} e hanno libero accesso
             alle proprietà, oggetti dotati di "origine" differente sono detti \code{"cross-origin"}
-            e hanno accesso molto ristretto alle proprietà dell'altro.\\
-            Se l'oggetto acceduto si trova in uno scope di privilegio piu basso allora l'accedente avrà
-            permessi di accesso libero ma potrà vedere solo un insieme ristretto di proprietà ma se invece
-            l'oggetto acceduto dovesse trovarsi in uno scope con privilegi piu alti allora non otterà 
-            alcun privilegio di accesso. Script "privilegiati" possono clonare uno o piu oggetti in
-            scope meno "privilegiati".
+            e hanno accesso molto ristretto alle proprietà reciproche.\\
+            Se l'oggetto acceduto si trova in un contesto meno privilegiato, allora l'accedente avrà
+            garantiti tutti i permessi ma potrà vedere solo un insieme ristretto di proprietà.
+            Se l'oggetto acceduto dovesse trovarsi in un contesto più privilegiato, l'accedente non otterà 
+            alcun privilegio.
+            Script "privilegiati" hanno la possibilità di clonare uno o piu oggetti in contesti
+            meno privilegiati per offrire API sui servizi.
 
         \subsection{Same-Origin Policy}
         \label{sec:sicurezza-script-same-origin-policy}
@@ -578,16 +583,18 @@
                     scrittura ed embedding mentre la lettura viene proibita, cioé viene reso possibile
                     inviare richieste cross-origin e incorporare risorse esterne ma non è possibile
                     conoscere il contenuto della risposta.
-                    Le regole d'accesso di rete \code{cross-origin} possono essere modificate dalla risorsa
-                    acceduta tramite header http o tag html \code{meta}.
 
-                \item \textbf{Storage}. Gli spazi di archiviazione sono separati e indipendenti per ogni origine
+                \item \textbf{Storage}. Il browser offre spazi di archiviazione condivisi tra gli script
+                    provenienti dalla stessa origine e non accessibili da fonti \code{cross-origin}.
+                    Per i cookie invece funziona diversamente. Essi usano una definizione diversa di 
+                    "orgine" e possono essere impostati sia sul prorpio dominio che su domini "genitore".
 
-                \item \textbf{Javascript API}. Due sono gli oggetti visibili a \code{cross-origin}: \code{window}
-                    e \code{location}, di questi solo un sottoinsieme di proprietà è accessibile, tra queste
-                    sono notevoli \code{.postMessage} di \code{window} che consente di scambiare dati \code{cross-origin}
-                    tra gli script e \code{.href} di \code{location}, accessibile solo in scrittura, permette di
-                    redirigere la finestra.
+                \item \textbf{Javascript API}. Quando uno script deve accedere ad uno spazio di
+                    memoria \code{cross-origin}, ottiene visibilità unicamente su due oggetti: \code{window}
+                    e \code{location} e solo un sottoinsieme delle loro proprietà è accessibile. Due sono
+                    rilevanti per questo articolo: \code{.postMessage} di \code{window}, che consente di 
+                    scambiare dati tra contesti \code{cross-origin}, e \code{.href} di \code{location}, 
+                    accessibile solo in scrittura, permette di redirigere la finestra verso un altro URL.
             \end{itemize}
 
             \subsubsection{Eccezioni}
@@ -596,13 +603,6 @@
                 documento che le contiene, mentre l'origine \code{file:///} è trattata come origine opaca cioè
                 le risorse ottenute con questo protocollo non sono mai considerate same-origin, nemmeno se
                 risiedenti nella stessa directory.
-
-            \subsubsection{Iframe pitfall}
-            \Nota{Rimuovere?}\todo{Se non e' funzionale al discorso che fai dopo, puoi anche rimuoverla}
-                L'implementazione degli iframe risente di una piccola falla di referenza; quando viene inserito
-                nel documento, \code{iframe} incorpora la pagina \code{about:blank} che viene sostituita non
-                appena la risorsa è caricata, pertanto lo stesso iframe mostra agli API javascript oggetti con
-                origine differente in due momenti diversi.
 
 
         \subsection{Compartimenti Javascript}
@@ -625,7 +625,8 @@
                     secondo la Same-Origin Policy.
 
                 \item \textbf{Privilegio Maggiore.} Se lo scope acceduto ha privilegi minori, allora si
-                    ottiene un wrapper Xray (di più su Xray Vision in seguito\todo{metti ref al punto esatto})
+                    ottiene un wrapper Xray, la Xray Vision verrà approfondita più avanti, nella sezione
+                    \refSection{sec:sicurezza-xray-vision}
 
                 \item \textbf{Privilegio Minore.} Se lo scope acceduto ha privilegi maggiori, allora si
                     ottiene un wrapper opaco che nega l'accesso all'oggetto.
@@ -692,8 +693,7 @@
             visione Xray può venire attenuata programmaticamente accedendo alla prorpietà \code{.wrappedJSObject},
             ma a questo punto non si avrebbero piu garanzie di sicurezza su di esso, nè sui "figli".
 
-    
-    \section{Le difese delle estensioni}
+        \subsection{Le difese delle estensioni}
         Nel \Capitolo{cap:infrastruttura-sicurezza-firefox} ho discusso il sistema di sicurezza generale
         degli script in Firefox, in questa sezione si mostreranno le difese specifiche dell'ambiente
         WebExtension. Consci dei rischi dietro l'abuso del WebExtension API, gli sviluppatori mozilla
@@ -701,7 +701,7 @@
         distinzione netta fra gli script che interagiscono con il browser e gli script che interagiscono
         con le pagine.
     
-            \subsection{I content script}
+            \subsubsection{I content script}
             \label{sec:difese-content-script}
                 In Manifest V2 i content script non hanno Content Security Policy, mentre in Manifest V3 sono soggetti
                 alla CSP di default delle estensioni \refSection{sec:difese-background-sidebar}.
@@ -722,7 +722,7 @@
                 I content script possono accedere ad un insieme ristretto di WebExtension API, perlopiù event listener,
                 servizi di messaging, conversione dei locales e storage.
     
-            \subsection{I background script e la sidebar}
+            \subsubsection{I background script e la sidebar}
             \label{sec:difese-background-sidebar}
                 Sugli script di background e le UI viene applicata una CSP di default modificabile soltanto dal
                 \manifest dell'estensione, i dettagli della policy differiscono tra Manifest V2 e V3. Nella
@@ -756,13 +756,7 @@
                 \end{itemize}
                 Questa politica è applicata su ogni estensione che non abbia esplicitamente modificato la voce
                 \code{"content\_security\_policy"} del suo \manifest e non è modificabile programmaticamente.
-                
-            \todo{forse questa sezione dovrebbe stare in \refChapter{cap:webextension-dettaglio} }\subsection{API}
-            \label{sec:difese-api-sandbox}
-                L'implementazione del WebExtension API è collocata nel Parent Process all'interno
-                di una Sandbox che esegue come Entità di Sistema \refSection{sec:security-principal} ed ha
-                accesso a molti servizi del browser (vedi \file{ExtensionCommon.sys.mjs} \method{\_createExtGlobal}).
-    
+   
 
 \chapter{WebExtension nel dettaglio}
 \label{cap:webextension-dettaglio}
@@ -1556,12 +1550,12 @@ window.onload = () => {
     Gli attacchi presentati in questa tesi erano mirati a bypassare le restrizioni di sicurezza
     utilizzando elementi definiti nell'HTML5 living standard e nel WebExtension Framework, ma 
     nessuno di essi ha bersagliato direttamente le strutture o le logiche interne al Web Engine Gecko.
-    Articoli e report su attacchi all'Engine esistono gia, oltre alla piattaforma BugZilla, un forum 
+    Articoli e report su attacchi diretti all'Engine esistono gia, oltre alla piattaforma BugZilla, un forum 
     gestito dalla Mozilla Foundation per riportare bug e vulnerabilità trovati nel codice di Gecko,
-    ma trovare informazioni sul funzionamento interno specifico di WebExtension risulta difficile.
+    ma trovare informazioni sul funzionamento interno di WebExtension risulta difficile.
     La documentazione ufficiale tratta il sistema di sicurezza ad alto livello, approfondisce le
     interfacce di programmazione WebExtension e C++, ma non approfondisce quali siano gli oggetti
-    coinvolti nella gestione di tutte queste strutture, né quali informazioni siano accessibili
+    coinvolti nella gestione di queste strutture, né quali informazioni siano accessibili
     ai processi relativamente alle estensioni e poiché sono i processi a prendere decisioni
     sull'iniezione di uno script o meno, questa informazione potrebbe diventare utile. Si consideri
     anche che ogni ogni processo può salvare i dati dell'estensione in uno o più livelli di cache
@@ -1569,42 +1563,67 @@ window.onload = () => {
     di cache interna e tutti questi spazi di archiviazione devono rimanere sincronizzati.
     
     Un'altra tecnologia che questo articolo ha solamente menzionato è la Xray Vision (vedi \refSection{sec:sicurezza-xray-vision}).
-    Essa è fondamentale per la sicurezza del browser poiché c'è un continuo passaggio di dati
-    tra ambienti a differente livello di privilegio. Approfondire il funzionamento di Xray Vision
-    potrebbe aprire a possibilità inaspettate.\\
-    
-    Raccogliendo le informazioni date nei precedenti paragrafi, ecco alcune idee per successivi
-    attacchi mirati al Gecko engine:
-    \begin{itemize}
-        \item \bold{Race condition} sulle chiamate agli api
-        \item \bold{Cache desync} sulle cache degli script, sui risultati delle chiamate agli api e sulle cache di rete.
-        \item \bold{Prototype Pollution}. Trovare punti di prototype pollution. Un punto di inizio 
-                potrebbero essere proprio le chiamate agli api che serializzano sottoforma di stringa
-                la catena di proprietà a cui lo script sta accedendo. Per esempio la ciamata a
-                \code{browser.runtime.getURL("page.html")} viene serializzata in un oggetto fatto piu o meno così:
-                \begin{lstlisting}
-        {
-            . . .
-            path: "runtime.getURL",
-            args: ["page.html"],
-            . . .
-        }
-                \end{lstlisting}
-                Sul lato Parent della comunicazione viene poi fatto il parsing dell'attributo \code{path}
-                per cercare l'implementazione reale della funzione. Errori nel sistema di parsing potrebbero
-                permettere di accedere a proprietà riservate dell'API.
+    Si tratta di una misura di sicurezza dei contesti privilegiati che li proteggere da ridefinizioni
+    degli oggetti \JS{} provenienti da contesti insicuri. Nel ciclo di vita delle pagine web c'è uno
+    scambio continuo di oggetti tra contesti a differente livello di privilegio e una vulnerabilità
+    in questo sotto-sistema semplificherebbe i tentativi di privilege escalation.
 
-        \item \bold{Bypass di Xray}. Xray è una misura pensata proprio per ostacolare tentativi di
-                prototype pollution e type juggling durante le interazioni tra i contesti, un bypass di
-                questa restrizione permetterebbe di promuovere oggetti \JS{} a livelli di privilegio
-                maggiori ed accesso ad api critici.
-    \end{itemize}
+    \section{Spunti per attacchi futuri}
+        Raccogliendo le informazioni date nei precedenti paragrafi, ecco alcune idee per successivi
+        attacchi mirati al Gecko engine:
+        \begin{itemize}
+            \item \bold{Race condition} sulle chiamate agli api. Cosa succede se piu script effettuano scritture
+                    e letture concorrentemente sullo stesso api quando sono collocati in processi diversi? E invece
+                    nello stesso processo? E che cosa succede se il contesto d'esecuzione cambia durante il calcolo
+                    di una chiamata? Dove finisce il risultato? Poiché il Parent Process ospita delle rappresentazioni
+                    dei contesti attivi sugli altri processi, come viene notificato il cambiamento di contesto?\\
+                    Queste domande potrebbero essere uno spunto di approfondimento sulle race-condition nel runtime
+                    Gecko.
 
-    Oltre a Gecko, è necessaria una analisi delle estensioni gia esistenti alla ricerca di vulnerabilità,
-    prime tra tutte le estensioni built-in Firefox che consentirebbero un exploit diffuso su tutti i
-    dispositivi ospitanti il browser.
-    Infine si dovrebbe estendere la ricerca anche agli altri browser.
-    \todo{continua}
+            \item \bold{Cache desync} sulle cache degli script. Come funziona il sistema di aggiornamento delle cache?
+                    quali dati vengono memorizzati? Molte classi gestonali possiedono delle cache proprie per risparmiarsi
+                    chiamate ai Servizi. Spesso queste classi popolano le cache ricavando dati da altre classi anche loro
+                    dotate di cache. Uno dei dubbi che si solleva è se e quanto sia efficiente la propagazione di informazioni
+                    nel sistema e come venga mantenuta l'integrità dei dati.
+
+            \item \bold{Prototype Pollution}. Trovare punti di prototype pollution. Un punto di inizio 
+                    potrebbero essere proprio le chiamate agli api che serializzano sottoforma di stringa
+                    la catena di proprietà a cui lo script sta accedendo. Per esempio la ciamata a
+                    \code{browser.runtime.getURL("page.html")} viene serializzata in un oggetto fatto piu o meno così:
+                    \begin{lstlisting}
+            {
+                . . .
+                path: "runtime.getURL",
+                args: ["page.html"],
+                . . .
+            }
+                    \end{lstlisting}
+                    Sul lato Parent della comunicazione viene poi fatto il parsing dell'attributo \code{path}
+                    per cercare l'implementazione reale della funzione. Errori nel sistema di parsing potrebbero
+                    permettere di accedere a proprietà riservate dell'API.
+
+            \item \bold{Bypass di Xray}. Xray è una misura pensata proprio per ostacolare tentativi di
+                    prototype pollution e type juggling durante le interazioni tra i contesti, un bypass di
+                    questa restrizione permetterebbe di promuovere oggetti \JS{} a livelli di privilegio
+                    maggiori ed accesso ad api critici.\\
+                    In molti punti del codice sorgente, il browser fa uso del getter \attr{wrappedJSObect} per
+                    lenire Xray ed accedere ai contenuti reali della pagina, partire da questi frammenti di
+                    codice potrebbe essere un buon inizio.
+
+            \item \bold{Size overflow}. Ho fatto un semplice test nella console sviluppatore del browser, ho
+                    assegnato ad un array una lunghezza di $2^{64}$ elementi. Prima di essere costretto a sopprimerlo,
+                    il processo ospite aveva raggiunto 3Gb di utilizzo della memoria, e continuavano ad aumentare!
+                    Ripetendo lo stesso test usando uno script di pagina web, ho ottenuto un errore sulla console
+                    che mi informava della dimensione invalida dell'array, ed ho ricevuto lo stesso risultato
+                    in \textit{extension-land}. È chiaro che gli sviluppatori mozilla siano consci dei rischi a cui
+                    espongono i loro utenti, ma il codice dell'applicazione è vasto e si potrebbero trovare punti
+                    vulnerabili.
+
+            \item \bold{Estensioni built-in}. Firefox ospita estensioni preinstallate e alcune di esse vanno
+                    direttamente o indirettamente a memorizzare dati provenienti dalla pagina o dall'utente.
+                    Lo studio più approfondito di queste estensioni potrebbe aprire la strada ad attacchi di 
+                    privilege-escalation nella \textit{extension-land} applicabili su ogni installazione Firefox.
+        \end{itemize}
 
 \printbibliography
 
